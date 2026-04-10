@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ICEP-HBS 2026 Program Viewer</title>
+<style>
+:root {
+  --primary: #1a56db;
+  --primary-light: #e8effd;
+  --accent: #f59e0b;
+  --accent-light: #fef3c7;
+  --must: #dc2626;
+  --must-bg: #fef2f2;
+  --must-border: #fca5a5;
+  --optional: #2563eb;
+  --optional-bg: #eff6ff;
+  --optional-border: #93c5fd;
+  --bg: #f8fafc;
+  --card-bg: #ffffff;
+  --text: #1e293b;
+  --text-light: #64748b;
+  --border: #e2e8f0;
+  --invited: #dc2626;
+  --invited-bg: #fef2f2;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background:var(--bg); color:var(--text); line-height:1.5; }
+
+header { background: linear-gradient(135deg, #1e3a5f 0%, #1a56db 100%); color:#fff; padding:20px 24px; position:sticky; top:0; z-index:100; box-shadow:0 2px 8px rgba(0,0,0,0.15); }
+header h1 { font-size:1.4rem; font-weight:700; }
+header .subtitle { font-size:0.85rem; opacity:0.85; margin-top:2px; }
+
+.tabs { display:flex; gap:4px; background:#fff; border-bottom:2px solid var(--border); padding:0 16px; overflow-x:auto; }
+.tabs button { padding:10px 18px; border:none; background:none; cursor:pointer; font-size:0.9rem; font-weight:500; color:var(--text-light); border-bottom:3px solid transparent; transition:all 0.2s; white-space:nowrap; }
+.tabs button.active { color:var(--primary); border-bottom-color:var(--primary); font-weight:600; }
+.tabs button:hover { color:var(--primary); background:var(--primary-light); }
+
+.toolbar { display:flex; flex-wrap:wrap; gap:10px; padding:12px 16px; background:#fff; border-bottom:1px solid var(--border); align-items:center; }
+.search-box { flex:1; min-width:200px; position:relative; }
+.search-box input { width:100%; padding:8px 12px 8px 36px; border:1px solid var(--border); border-radius:8px; font-size:0.9rem; outline:none; }
+.search-box input:focus { border-color:var(--primary); box-shadow:0 0 0 3px rgba(26,86,219,0.1); }
+.search-box::before { content:'🔍'; position:absolute; left:10px; top:50%; transform:translateY(-50%); font-size:0.85rem; }
+
+.filter-group { display:flex; gap:6px; flex-wrap:wrap; }
+.filter-btn { padding:6px 14px; border:1px solid var(--border); border-radius:20px; background:#fff; cursor:pointer; font-size:0.8rem; font-weight:500; transition:all 0.2s; }
+.filter-btn.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+.filter-btn:hover { border-color:var(--primary); }
+
+.content { padding:16px; max-width:1400px; margin:0 auto; }
+
+.time-group { margin-bottom:24px; }
+.time-header { font-size:1rem; font-weight:700; color:var(--primary); padding:8px 12px; background:var(--primary-light); border-radius:8px; margin-bottom:10px; display:flex; align-items:center; gap:8px; }
+.time-header .time-badge { background:var(--primary); color:#fff; padding:2px 10px; border-radius:12px; font-size:0.8rem; }
+
+.sessions-grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap:10px; }
+
+.session-card { background:var(--card-bg); border:1px solid var(--border); border-radius:10px; padding:14px; transition:all 0.2s; position:relative; }
+.session-card:hover { box-shadow:0 4px 12px rgba(0,0,0,0.08); transform:translateY(-1px); }
+.session-card.bk-must { border-color:var(--must-border); background:var(--must-bg); }
+.session-card.bk-optional { border-color:var(--optional-border); background:var(--optional-bg); }
+.session-card.invited { border-left:4px solid var(--invited); }
+
+.session-card .room-tag { display:inline-block; padding:2px 8px; border-radius:4px; font-size:0.7rem; font-weight:600; margin-bottom:6px; }
+.room-A .room-tag { background:#dbeafe; color:#1e40af; }
+.room-B .room-tag { background:#dcfce7; color:#166534; }
+.room-C .room-tag { background:#fef3c7; color:#92400e; }
+.room-D .room-tag { background:#fce7f3; color:#9d174d; }
+.room-E .room-tag { background:#e0e7ff; color:#3730a3; }
+.room-F .room-tag { background:#f3e8ff; color:#6b21a8; }
+
+.session-card .session-id { font-size:0.75rem; font-weight:600; color:var(--primary); }
+.session-card .title { font-size:0.88rem; font-weight:600; margin:4px 0; line-height:1.4; }
+.session-card .authors { font-size:0.78rem; color:var(--text-light); margin-top:4px; }
+.session-card .session-type { display:inline-block; background:var(--invited-bg); color:var(--invited); font-size:0.7rem; font-weight:600; padding:1px 6px; border-radius:3px; margin-bottom:4px; }
+
+.bk-btns { position:absolute; top:8px; right:8px; display:flex; gap:2px; }
+.bk-btn { border:none; border-radius:6px; cursor:pointer; font-size:0.68rem; font-weight:600; padding:4px 8px; transition:all 0.15s; opacity:0.45; }
+.bk-btn:hover { opacity:0.85; transform:scale(1.05); }
+.bk-btn.must-btn { background:#fee2e2; color:var(--must); }
+.bk-btn.opt-btn  { background:#dbeafe; color:var(--optional); }
+.bk-btn.active { opacity:1; box-shadow:0 1px 4px rgba(0,0,0,0.15); }
+
+.schedule-view { display:none; }
+.schedule-view.active { display:block; }
+.program-view { display:block; }
+.program-view.hidden { display:none; }
+
+.schedule-empty { text-align:center; padding:60px 20px; color:var(--text-light); }
+.schedule-empty .icon { font-size:3rem; margin-bottom:12px; }
+
+.schedule-day { margin-bottom:24px; }
+.schedule-day h3 { font-size:1rem; font-weight:700; color:var(--text); margin-bottom:10px; padding-bottom:6px; border-bottom:2px solid var(--primary); }
+
+.schedule-item { display:flex; gap:12px; padding:10px 14px; background:var(--card-bg); border:1px solid var(--border); border-radius:8px; margin-bottom:6px; align-items:flex-start; }
+.schedule-item.si-must { border-left:4px solid var(--must); background:var(--must-bg); }
+.schedule-item.si-optional { border-left:4px solid var(--optional); background:var(--optional-bg); }
+.schedule-item .time { font-weight:700; color:var(--primary); min-width:100px; font-size:0.85rem; }
+.schedule-item .info { flex:1; }
+.schedule-item .info .title { font-weight:600; font-size:0.88rem; }
+.schedule-item .info .meta { font-size:0.78rem; color:var(--text-light); }
+.schedule-item .remove-btn { background:none; border:none; color:#ef4444; cursor:pointer; font-size:1.1rem; padding:4px; flex-shrink:0; }
+.pri-badge { display:inline-block; padding:1px 7px; border-radius:4px; font-size:0.68rem; font-weight:700; margin-left:6px; vertical-align:middle; }
+.pri-must { background:#fee2e2; color:var(--must); }
+.pri-optional { background:#dbeafe; color:var(--optional); }
+
+.reset-bar { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:8px; }
+.reset-btn { padding:8px 18px; border:1px solid #ef4444; color:#ef4444; background:#fff; border-radius:8px; cursor:pointer; font-size:0.85rem; font-weight:500; transition:all 0.2s; }
+.reset-btn:hover { background:#fef2f2; }
+.export-btn { padding:8px 18px; border:1px solid var(--primary); color:var(--primary); background:#fff; border-radius:8px; cursor:pointer; font-size:0.85rem; font-weight:500; transition:all 0.2s; }
+.export-btn:hover { background:var(--primary-light); }
+
+.badge { display:inline-flex; align-items:center; justify-content:center; min-width:20px; height:20px; padding:0 6px; border-radius:10px; font-size:0.7rem; font-weight:700; background:var(--accent); color:#fff; margin-left:6px; }
+
+.highlight { background:#fde68a; padding:0 2px; border-radius:2px; }
+
+.common-event { background:linear-gradient(135deg, #f0f9ff, #e0f2fe); border:1px solid #bae6fd; border-radius:10px; padding:16px; margin-bottom:10px; text-align:center; position:relative; }
+.common-event .event-title { font-size:1rem; font-weight:700; color:#0c4a6e; }
+.common-event .event-detail { font-size:0.85rem; color:#0369a1; margin-top:4px; }
+.common-event .event-chairs { font-size:0.78rem; color:var(--text-light); margin-top:4px; }
+
+.conflict-warning { background:#fef2f2; border:1px solid #fecaca; color:#991b1b; padding:6px 12px; border-radius:6px; font-size:0.8rem; margin-bottom:8px; }
+
+.sched-mode-toggle { display:inline-flex; gap:2px; background:var(--bg); border-radius:8px; padding:2px; margin-left:12px; }
+.sched-mode-toggle button { padding:5px 12px; border:none; border-radius:6px; cursor:pointer; font-size:0.8rem; font-weight:500; background:transparent; color:var(--text-light); transition:all 0.2s; }
+.sched-mode-toggle button.active { background:#fff; color:var(--primary); box-shadow:0 1px 3px rgba(0,0,0,0.1); }
+
+.legend { display:flex; gap:16px; align-items:center; font-size:0.78rem; color:var(--text-light); margin-bottom:12px; flex-wrap:wrap; }
+.legend-item { display:flex; align-items:center; gap:4px; }
+.legend-box { width:14px; height:14px; border-radius:3px; }
+
+/* ====== Timetable View ====== */
+.timetable-wrapper { overflow-x:auto; }
+.timetable { width:100%; border-collapse:collapse; font-size:0.78rem; table-layout:fixed; min-width:800px; }
+.timetable th { background:var(--primary); color:#fff; padding:8px 6px; font-weight:600; text-align:center; position:sticky; top:0; }
+.timetable th.time-col { width:90px; }
+.timetable td { border:1px solid var(--border); padding:4px; vertical-align:top; }
+.timetable tr:nth-child(even) td { background:#fafbfc; }
+.timetable .tt-cell { padding:6px; border-radius:6px; margin-bottom:4px; font-size:0.75rem; line-height:1.35; }
+.timetable .tt-cell:last-child { margin-bottom:0; }
+.tt-must { background:var(--must-bg); border-left:3px solid var(--must); }
+.tt-optional { background:var(--optional-bg); border-left:3px solid var(--optional); }
+.tt-cell .tt-title { font-weight:600; }
+.tt-cell .tt-meta { color:var(--text-light); font-size:0.7rem; margin-top:2px; }
+.tt-cell .tt-id { font-weight:600; color:var(--primary); font-size:0.68rem; }
+.tt-common { background:linear-gradient(135deg,#f0f9ff,#e0f2fe); text-align:center; font-weight:600; color:#0c4a6e; padding:8px; }
+
+/* Program timetable cells */
+.tt-cell-prog { padding:5px; border-radius:6px; margin-bottom:3px; font-size:0.72rem; line-height:1.3; position:relative; border:1px solid var(--border); background:var(--card-bg); cursor:default; transition:all 0.15s; }
+.tt-cell-prog:hover { box-shadow:0 2px 6px rgba(0,0,0,0.08); }
+.tt-cell-prog:last-child { margin-bottom:0; }
+.tt-cell-prog.bk-must { background:var(--must-bg); border-color:var(--must-border); }
+.tt-cell-prog.bk-optional { background:var(--optional-bg); border-color:var(--optional-border); }
+.tt-cell-prog.invited-cell { border-left:3px solid var(--invited); }
+.tt-cell-prog .cell-time { font-size:0.65rem; color:var(--primary); font-weight:600; }
+.tt-cell-prog .cell-title { font-weight:600; font-size:0.72rem; margin:1px 0; }
+.tt-cell-prog .cell-author { color:var(--text-light); font-size:0.65rem; }
+.tt-cell-prog .cell-bk { display:flex; gap:2px; margin-top:3px; }
+.tt-cell-prog .cell-bk button { border:none; border-radius:4px; cursor:pointer; font-size:0.6rem; font-weight:600; padding:2px 6px; opacity:0.4; transition:all 0.15s; }
+.tt-cell-prog .cell-bk button:hover { opacity:0.75; }
+.tt-cell-prog .cell-bk button.active { opacity:1; box-shadow:0 1px 3px rgba(0,0,0,0.12); }
+.tt-cell-prog .cell-bk .m-btn { background:#fee2e2; color:var(--must); }
+.tt-cell-prog .cell-bk .o-btn { background:#dbeafe; color:var(--optional); }
+
+.prog-mode-toggle { display:inline-flex; gap:2px; background:var(--bg); border-radius:8px; padding:2px; }
+.prog-mode-toggle button { padding:5px 12px; border:none; border-radius:6px; cursor:pointer; font-size:0.8rem; font-weight:500; background:transparent; color:var(--text-light); transition:all 0.2s; }
+.prog-mode-toggle button.active { background:#fff; color:var(--primary); box-shadow:0 1px 3px rgba(0,0,0,0.1); }
+
+@media (max-width:768px) {
+  header h1 { font-size:1.1rem; }
+  .sessions-grid { grid-template-columns:1fr; }
+  .toolbar { flex-direction:column; }
+  .search-box { min-width:100%; }
+}
+
+.no-results { text-align:center; padding:40px; color:var(--text-light); }
+.count-info { font-size:0.8rem; color:var(--text-light); padding:4px 16px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>ICEP-HBS 2026 Advance Program</h1>
+  <div class="subtitle">International Conference on Electronics Packaging | April 14-17, 2026 | Hiroshima</div>
+</header>
+
+<div class="tabs" id="dateTabs">
+  <button data-date="2026-04-14" onclick="selectDate('2026-04-14')">Apr 14 (Tue)</button>
+  <button data-date="2026-04-15" onclick="selectDate('2026-04-15')" class="active">Apr 15 (Wed)</button>
+  <button data-date="2026-04-16" onclick="selectDate('2026-04-16')">Apr 16 (Thu)</button>
+  <button data-date="2026-04-17" onclick="selectDate('2026-04-17')">Apr 17 (Fri)</button>
+  <button data-date="schedule" onclick="showSchedule()">My Schedule <span class="badge" id="scheduleBadge" style="display:none">0</span></button>
+</div>
+
+<div class="toolbar" id="toolbar">
+  <div class="search-box">
+    <input type="text" id="searchInput" placeholder="Search presentations, authors, sessions..." oninput="filterSessions()">
+  </div>
+  <div class="prog-mode-toggle" id="progModeToggle">
+    <button class="active" onclick="setProgMode('list')">List</button>
+    <button onclick="setProgMode('timetable')">Timetable</button>
+  </div>
+  <div class="filter-group" id="roomFilters"></div>
+</div>
+
+<div class="count-info" id="countInfo"></div>
+
+<div class="content">
+  <div class="program-view" id="programView"></div>
+  <div class="schedule-view" id="scheduleView">
+    <div class="reset-bar">
+      <div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;">
+        <strong>My Schedule</strong>
+        <span id="scheduleCount" style="font-size:0.85rem; color:var(--text-light);"></span>
+        <div class="sched-mode-toggle">
+          <button class="active" onclick="setSchedMode('list')">List</button>
+          <button onclick="setSchedMode('timetable')">Timetable</button>
+        </div>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="export-btn" onclick="exportSchedule()">Export Schedule</button>
+        <button class="reset-btn" onclick="resetSchedule()">Reset All</button>
+      </div>
+    </div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-box" style="background:var(--must);"></div> Must Attend</div>
+      <div class="legend-item"><div class="legend-box" style="background:var(--optional);"></div> If Possible</div>
+    </div>
+    <div id="scheduleContent"></div>
+  </div>
+</div>
+
+<script>
+// ============ PROGRAM DATA ============
+const PROGRAM_DATA = [
+// ---- April 14 (Tuesday) ----
+{id:"14TA1-1",date:"2026-04-14",time:"12:20",endTime:"12:30",room:"A",session:"HBS Special Session",title:"Introduction and Hybrid Bonding Overview",authors:"Dongkai Shangguan (Thermal Engineering Associates, Inc. (TEA))",invited:true},
+{id:"14TA1-2",date:"2026-04-14",time:"12:30",endTime:"13:00",room:"A",session:"HBS Special Session",title:"Redefining Integration: Process Enablers for Die-to-Wafer Hybrid Bonding",authors:"Laura Mirkarimi (Adeia)",invited:true},
+{id:"14TA1-3",date:"2026-04-14",time:"13:00",endTime:"13:30",room:"A",session:"HBS Special Session",title:"Tight pitch wafer-to-wafer hybrid bonding: SoC requirements and integration challenges",authors:"Joeri De Vos (imec)",invited:true},
+{id:"14TA1-4",date:"2026-04-14",time:"13:30",endTime:"14:00",room:"A",session:"HBS Special Session",title:"A predictive model for bond strengthening based on ion characteristics and the interface evolution in plasma activated fusion and hybrid bonding",authors:"David Doppelbauer (EVG)",invited:true},
+{id:"14TA1-5",date:"2026-04-14",time:"14:00",endTime:"14:30",room:"A",session:"HBS Special Session",title:"Hybrid Bonding: The Path from Fundamentals to Volume Manufacturing Tools",authors:"Jim Papanu (TEL America)",invited:true},
+{id:"14TA2-1",date:"2026-04-14",time:"14:45",endTime:"15:15",room:"A",session:"HBS Special Session",title:"Hybrid Bonding Applications Overview",authors:"John Lau (Unimicron)",invited:true},
+{id:"14TA2-2",date:"2026-04-14",time:"15:15",endTime:"15:45",room:"A",session:"HBS Special Session",title:"Hybrid bonding for advanced CMOS image sensors",authors:"Yoshihisa Kagawa (Sony)",invited:true},
+{id:"14TA2-3",date:"2026-04-14",time:"15:45",endTime:"16:35",room:"A",session:"HBS Special Session",title:"Reliability of Cu-SiO2 Hybrid Bonds for 3D IC Heterogeneous Integration",authors:"Chih Chen (National Yang Ming Chiao Tung University)",invited:true},
+{id:"14TA3-1",date:"2026-04-14",time:"16:35",endTime:"17:10",room:"A",session:"ICEP Special Session",title:"Semiconductor Innovations Powering the Next Era of Computing",authors:"Hemanth Jagannathan (IBM Research)",invited:true},
+{id:"14TA3-2",date:"2026-04-14",time:"17:10",endTime:"17:45",room:"A",session:"ICEP Special Session",title:"Building on IBM's 2nm-GAA Vision: Rapidus Manufacturing and 600mm Panel-Level Packaging Innovation",authors:"Yasumitsu Orii (Rapidus)",invited:true},
+
+// ---- April 15 (Wednesday) ----
+{id:"15-K1",date:"2026-04-15",time:"15:00",endTime:"15:30",room:"ALL",session:"Keynote Lecture I",title:"Chip-Package Interaction on High Bandwidth Memory",authors:"Naoki Yokoi, Micron Memory Japan KK",invited:true,common:true,chairs:"Kazuya Okamoto, NIT/UOsaka; Yasuhiro Morikawa, ULVAC"},
+{id:"15-K2",date:"2026-04-15",time:"15:40",endTime:"16:40",room:"ALL",session:"Keynote Lecture II",title:"Enabling AI compute hardware through Silicon Photonics and advanced 3D assembly technologies",authors:"Ossieur Peter, imec",invited:true,common:true,chairs:"Fumihiro Inoue, YOKOHAMA National University; Yasuhiro Morikawa, ULVAC"},
+{id:"15-LT",date:"2026-04-15",time:"12:55",endTime:"13:25",room:"ALL",session:"Luncheon Talk",title:"The Origins of Silicon Valley: Lessons for Tech Hubs",authors:"Paul Wesling, Hewlett Packard Co (retired) and IEEE Life Fellow",invited:true,common:true,chairs:"Toyohiro Aoki, IBM Research; Masahisa Fujino, A*STAR"},
+{id:"15WA1-1",date:"2026-04-15",time:"09:00",endTime:"10:40",room:"A",session:"15WA1: INEMI Session",title:"Testing and Characterization for Semiconductor Packaging Thermal Management",authors:"Dongkai Shangguan, Chun Keang Ooi, Sze Pei Lim (Indium Corporation, Intel, Thermal Engineering Associates)"},
+{id:"15WA1-2",date:"2026-04-15",time:"09:00",endTime:"10:40",room:"A",session:"15WA1: INEMI Session",title:"Benchmarking AOI Capabilities for Fine Pitch Substrate Inspection",authors:"Feng Xue, Charles Reynolds, Glenn Pomerantz, Jason Frankel, Thomas Wassick, Charlie Zhu, Masahiro Tsuriya (IBM, Nordson T&I, iNEMI)"},
+{id:"15WA1-3",date:"2026-04-15",time:"09:00",endTime:"10:40",room:"A",session:"15WA1: INEMI Session",title:"Thermal Stress Study of Low Temperature Material for 1st Level Interconnect",authors:"Sze Pei Lim, Danyang Zheng, Russell Kastberg, Shripad Gokhale, Yasuharu Yamada, Masaki Sanada et al. (Indium Corporation, IBM, Intel, Shinko, iNEMI)"},
+{id:"15WA1-4",date:"2026-04-15",time:"09:00",endTime:"10:40",room:"A",session:"15WA1: INEMI Session",title:"Warpage Experiments and Simulation for Glass Core Substrate",authors:"Kang Eu Ong, Konishi Junko, Satake Noboru, Sato Yoichiro et al. (Intel, AGC, Shinko, INEMI)"},
+{id:"15WB2-1",date:"2026-04-15",time:"10:55",endTime:"12:35",room:"B",session:"15WB2: IMAPS Session - Challenges and Opportunities in Datacenter",title:"Packaging Challenges in the AI Era",authors:"Jan Vardaman, Tech Search International",invited:true},
+{id:"15WB2-2",date:"2026-04-15",time:"10:55",endTime:"12:35",room:"B",session:"15WB2: IMAPS Session - Challenges and Opportunities in Datacenter",title:"From chiplets to systems: Driving Efficiency via Heterogeneous Integration",authors:"Robert Lo, ITRI",invited:true},
+{id:"15WB2-3",date:"2026-04-15",time:"10:55",endTime:"12:35",room:"B",session:"15WB2: IMAPS Session - Challenges and Opportunities in Datacenter",title:"DC power modules in AI data center",authors:"Yi Jen Chan (Ian Chan), Cyntec/Delta Electronics Group",invited:true},
+{id:"15WB2-4",date:"2026-04-15",time:"10:55",endTime:"12:35",room:"B",session:"15WB2: IMAPS Session - Challenges and Opportunities in Datacenter",title:"Integration Pathways for Scalable AI and High-Performance Computing Systems",authors:"Katsuyuki Sakuma, IBM Research - Albany",invited:true},
+{id:"15WC1-1",date:"2026-04-15",time:"09:00",endTime:"10:40",room:"C",session:"15WC1: Fan-Out Packaging-1",title:"Advanced Panel Level Fan-out Package: Development of a Damascene Integration Scheme for Cu Redistribution Layers",authors:"Eungchul Kim, Suhyeon Jeon, Jusuk Kang et al., Samsung Electronics"},
+{id:"15WC1-2",date:"2026-04-15",time:"09:00",endTime:"10:40",room:"C",session:"15WC1: Fan-Out Packaging-1",title:"From Pilot To HVM: A Practical Overlay Yield Prediction Workflow For FOPLP Lithography",authors:"John Chang, Jian Lu, Timothy Chang, Onto Innovation"},
+{id:"15WC1-3",date:"2026-04-15",time:"09:00",endTime:"10:40",room:"C",session:"15WC1: Fan-Out Packaging-1",title:"TCR and Fusing current Characterization of Cu RDL Lines for Fan-Out Wafer-Level Packaging",authors:"Fayong Liu, Jinbiao Hu, I-Hung Lin et al. (Ocean University of China, Kore Semiconductor)"},
+{id:"15WC1-4",date:"2026-04-15",time:"09:00",endTime:"10:40",room:"C",session:"15WC1: Fan-Out Packaging-1",title:"Approach of graphic dynamic adjustment integrate to Laser direct imaging solution on 600mm Panel Fan Out",authors:"PING CHING Shen, Jen-Kuang Fang et al., Advanced Semiconductor Engineering, Inc."},
+{id:"15WC2-1",date:"2026-04-15",time:"10:55",endTime:"12:35",room:"C",session:"15WC2: Fan-Out Packaging-2",title:"A Novel Fan-Out Wafer Module Stacking Technology Using Transfer Bonding",authors:"Chih-Cheng Hsiao, Industrial Technology Research Institute"},
+{id:"15WC2-2",date:"2026-04-15",time:"10:55",endTime:"12:35",room:"C",session:"15WC2: Fan-Out Packaging-2",title:"Warpage Prediction in Multi-Layer Fan-Out Panel-Level Packaging Using Finite Element Method with Artificial Neural Network",authors:"Chen-Chen Li, Kuo-Shen Chen, National Cheng-Kung University"},
+{id:"15WC2-3",date:"2026-04-15",time:"10:55",endTime:"12:35",room:"C",session:"15WC2: Fan-Out Packaging-2",title:"New Advanced Packaging Architecture: CoWoP (Chip on Wafer on Platform PCB)",authors:"Terry Hsu, HueiChi Yang, Sam Lin et al., Siliconware Precision Industries Co., Ltd."},
+{id:"15WD1-1",date:"2026-04-15",time:"09:00",endTime:"10:40",room:"D",session:"15WD1: HB Process",title:"Hybrid Bonding and Interconnect Scaling: Driving Application Performance, Power and Cost by Mixing and Matching Semiconductor Technologies",authors:"Hiroshi Yamamoto, EVGroup Japan",invited:true},
+{id:"15WD1-2",date:"2026-04-15",time:"09:00",endTime:"10:40",room:"D",session:"15WD1: HB Process",title:"From Scaling to Stacking: How Fusion and Hybrid Bonding enable Next-Generation High-Performance Chip Architectures",authors:"Thomas Pleschke, EV Group",invited:true},
+{id:"15WD1-3",date:"2026-04-15",time:"09:00",endTime:"10:40",room:"D",session:"15WD1: HB Process",title:"Simplified Gap-Filling Process for Reconstructed Die-to-Wafer Hybrid Bonding Using Spin-Coated Silicone Resin",authors:"Asuka Fujii, Yutetsu Kamiya, Kenta Hayama, Fumihiro Inoue (Yokohama National University, ADEKA Corporation)"},
+{id:"15WD1-4",date:"2026-04-15",time:"09:00",endTime:"10:40",room:"D",session:"15WD1: HB Process",title:"Ultra-low Coefficient of Thermal Expansion Spin-on Polymer for Deep Trench Gap-Filling for 3D-IC Heterogeneous Integration",authors:"Pin-Lin Chen, Chih Chen (National Yang Ming Chiao Tung University)"},
+{id:"15WD2-1",date:"2026-04-15",time:"10:55",endTime:"12:35",room:"D",session:"15WD2: Solder/Intermetallic connect",title:"Innovative Materials for Advanced Packaging and Heterogeneous Integration",authors:"Dongkai Shangguan, Sze Pei Lim, Indium Corporation",invited:true},
+{id:"15WD2-2",date:"2026-04-15",time:"10:55",endTime:"12:35",room:"D",session:"15WD2: Solder/Intermetallic connect",title:"Investigating Interfacial Reactions and Shear Strength of SnAg / Fe-HEA Alloy",authors:"Tzu-Hsiang Liao, Jia-Xiang Gao, Chuh-Hsiang Liu et al. (Feng Chia University, CompuTherm LLC)"},
+{id:"15WD2-3",date:"2026-04-15",time:"10:55",endTime:"12:35",room:"D",session:"15WD2: Solder/Intermetallic connect",title:"Interfacial Diffusion Control in Silver-Indium Transient Liquid Phase Bonding via Two-Dimensional Interlayers",authors:"Jiaqi Song, Donglin Zhang, Xiuchen Zhao et al. (Beijing Institute of Technology, Shenzhen MSU-BIT University)"},
+{id:"15WD2-4",date:"2026-04-15",time:"10:55",endTime:"12:35",room:"D",session:"15WD2: Solder/Intermetallic connect",title:"Development and Characterization of Eco-Friendly Sn-Ag-Cu-Zn Solder for Electrical Performance on PCB Applications",authors:"Andromeda Dwi Laksono et al. (Institut Teknologi Kalimantan)"},
+{id:"15WE1-1",date:"2026-04-15",time:"09:00",endTime:"10:40",room:"E",session:"15WE1: Materials-1",title:"Electro-Plating of Sn-Cu-Ni Based IMC Material for Connectors and Switches",authors:"Hiroaki Ikeda, Shigenobu Sekine, Napra, Co. Ltd."},
+{id:"15WE1-2",date:"2026-04-15",time:"09:00",endTime:"10:40",room:"E",session:"15WE1: Materials-1",title:"Cu3Sn as a Passivation Layer for Improving Reliabilities of Nanotwinned Cu Interconnects",authors:"Jing Chok, Chih Chen, Yi-Quan Lin (National Yang Ming Chiao Tung University)"},
+{id:"15WE1-3",date:"2026-04-15",time:"09:00",endTime:"10:40",room:"E",session:"15WE1: Materials-1",title:"Strengthening of Pressureless Ag Sintering with (111)-Oriented Nanotwinned Cu Substrate",authors:"Zhi-Quan Liu, Shubo Ai, Xingming Huang (Southern University of Science and Technology, Chinese Academy of Sciences)"},
+{id:"15WE1-4",date:"2026-04-15",time:"09:00",endTime:"10:40",room:"E",session:"15WE1: Materials-1",title:"Electric Current Becomes a Thermodynamic Variable - Revisiting Phase Stability in Alloys",authors:"Shubhayan Mukherjee, Shih-Kang Lin, National Cheng Kung University"},
+{id:"15WE2-1",date:"2026-04-15",time:"10:55",endTime:"12:35",room:"E",session:"15WE2: Materials-2",title:"Ultra-Thick Photoresist Patterning Enabling Higher Aspect Ratio Cu Posts for Advanced Packaging",authors:"Tatsuya Fujii et al., Samsung Device Solutions R&D Japan"},
+{id:"15WE2-2",date:"2026-04-15",time:"10:55",endTime:"12:35",room:"E",session:"15WE2: Materials-2",title:"Investigation of SiCN-SiCN bonding with different wet pretreatment solutions followed by O2 plasma for hybrid bonding application",authors:"Chien-Yu Liu, Chih Chen et al. (National Yang Ming Chiao Tung University, Lam Research)"},
+{id:"15WE2-3",date:"2026-04-15",time:"10:55",endTime:"12:35",room:"E",session:"15WE2: Materials-2",title:"Reliability Study of NMP-Free PI with Anti-Metal Migration Properties",authors:"Daniel Chen, Wei-Chun Chen et al., Siliconware Precision Industries Co., Ltd."},
+{id:"15WE2-4",date:"2026-04-15",time:"10:55",endTime:"12:35",room:"E",session:"15WE2: Materials-2",title:"Fine Trench Fabrication by Excimer Laser Ablation and Plasma Etching",authors:"Kento Eguchi, Masatsugu Nakano, Eiichiro Yamasaki, Shin-Etsu Chemical Co., Ltd."},
+{id:"15WF1-1",date:"2026-04-15",time:"09:00",endTime:"10:40",room:"F",session:"15WF1: Emerging Technologies-1",title:"Proposal of Development of Megawatt Super-Power Operational Amplifier Using Distar Transistor",authors:"Kensho Okamoto, Ken-ichiro Okamoto, Kazunori Morishita, Atsushi Okuno (Kagawa University, Kyoto University, Green Planets Co.)",invited:true},
+{id:"15WF1-2",date:"2026-04-15",time:"09:00",endTime:"10:40",room:"F",session:"15WF1: Emerging Technologies-1",title:"Microstructure Evolution and Strength Improvement in Cu-to-Cu Bonding with Micro/Nano Cu Paste",authors:"Albert Tzu-Chia Wu, Li-Chen Wu, Shao-Chi Chen, Kelvin Li, Chang-Meng Wang (National Central University, Shenmao Technology INC.)"},
+{id:"15WF1-3",date:"2026-04-15",time:"09:00",endTime:"10:40",room:"F",session:"15WF1: Emerging Technologies-1",title:"Via-Last Bumpless TSV for High Bandwidth NAND (HBN)",authors:"Koji Sakui, Norio Chujo, Masao Taguchi, Takayuki Ohba (Institute of Science Tokyo)"},
+{id:"15WF1-4",date:"2026-04-15",time:"09:00",endTime:"10:40",room:"F",session:"15WF1: Emerging Technologies-1",title:"Localized plastic strain analysis of polymer films for foldable substrates using micro-digital image correlation",authors:"Nakyung Jeong, Jeehoo Na, Eunhye Lee, Sojeong Lee, Tae-Ik Lee (Korea Institute of Industrial Technology)"},
+{id:"15WF2-1",date:"2026-04-15",time:"10:55",endTime:"12:35",room:"F",session:"15WF2: Emerging Technologies-2",title:"AI-powered analytics for interconnect technologies utilized in electronic packaging",authors:"Roland Brunner, Materials Center Leoben Forschung GmbH",invited:true},
+{id:"15WF2-2",date:"2026-04-15",time:"10:55",endTime:"12:35",room:"F",session:"15WF2: Emerging Technologies-2",title:"High-Resolution 3D Printed Microelectronics Platform for Advanced Packaging Applications",authors:"Hylke Akkerman, Jeroen Sol et al., Holst Centre / TNO"},
+{id:"15WF2-3",date:"2026-04-15",time:"10:55",endTime:"12:35",room:"F",session:"15WF2: Emerging Technologies-2",title:"Investigation of Laser Parameters for the Creation of Traces and Contact Pads on Aluminum Nitride Ceramics",authors:"Finn-Merlin Deckert et al., CiS Forschungsinstitut fuer Mikrosensorik GmbH"},
+{id:"15WF2-4",date:"2026-04-15",time:"10:55",endTime:"12:35",room:"F",session:"15WF2: Emerging Technologies-2",title:"Analysis of Shrinkage-Induced Dimensional Mismatch in 3D-Printed Packaging Substrates for Flip-Chip Bonding",authors:"Haksoon Jung, Jimin Kwon, UNIST"},
+{id:"15WA2-1",date:"2026-04-15",time:"10:55",endTime:"12:35",room:"A",session:"15WA2: MEF (MEMS Engineer Forum) Session",title:"My 40 years with MEMS, leading to mutual contribution of MEMS/Semiconductors",authors:"Susumu Kaminaga, Toray Industries / SK Global Advisers Co., Ltd.",invited:true},
+{id:"15WA2-2",date:"2026-04-15",time:"10:55",endTime:"12:35",room:"A",session:"15WA2: MEF (MEMS Engineer Forum) Session",title:"Development of Automotive Chiplet SoC",authors:"Nobuaki Kawahara, ASRA, Advanced SoC Research for Automotive",invited:true},
+{id:"15WA2-3",date:"2026-04-15",time:"10:55",endTime:"12:35",room:"A",session:"15WA2: MEF (MEMS Engineer Forum) Session",title:"Compact FT-NIR spectrometer made through MOEMS technology",authors:"Tomofumi Suzuki, HAMAMATSU PHOTONICS K.K.",invited:true},
+
+// ---- April 16 (Thursday) ----
+{id:"16-K3",date:"2026-04-16",time:"08:30",endTime:"09:15",room:"ALL",session:"Keynote Lecture III",title:"Advanced Thinning and Cutting Technologies Enabling AI-Oriented Heterogeneous Integration",authors:"Youngsuk Kim, DISCO Corp.",invited:true,common:true,chairs:"Fumihiro Inoue, YOKOHAMA National University; Yasuhiro Morikawa, ULVAC"},
+{id:"16TA1-1",date:"2026-04-16",time:"09:30",endTime:"11:10",room:"A",session:"16TA1: Glass PKG-1",title:"Opportunities and Challenges of Glass Core Substrate Technologies",authors:"Andreas Ostmann, Fraunhofer IZM",invited:true},
+{id:"16TA1-2",date:"2026-04-16",time:"09:30",endTime:"11:10",room:"A",session:"16TA1: Glass PKG-1",title:"A Panel-Level Manufacturing Platform for Reliable Glass Core Substrates for Next Generation IC Packages",authors:"Christian Buchner, SCHMID Group",invited:true},
+{id:"16TA1-3",date:"2026-04-16",time:"09:30",endTime:"11:10",room:"A",session:"16TA1: Glass PKG-1",title:"Glasses as substrates for packaging: Remarks on Mechanic Reliability connected to via-via distance and via density",authors:"Martin Letz et al., SCHOTT AG"},
+{id:"16TA1-4",date:"2026-04-16",time:"09:30",endTime:"11:10",room:"A",session:"16TA1: Glass PKG-1",title:"From Via to Singulation - Laser Technologies Driving Glass-Based Advanced Packaging",authors:"Nils Anspach et al., LPKF Laser and Electronics SE"},
+{id:"16TB1-1",date:"2026-04-16",time:"09:30",endTime:"11:10",room:"B",session:"16TB1: ISMP-1",title:"Bonding Strength Enhancement in Cu/SiO2 Hybrid Bonding",authors:"Prof. Sungdong Kim, Seoul National University of Science and Technology",invited:true},
+{id:"16TB1-2",date:"2026-04-16",time:"09:30",endTime:"11:10",room:"B",session:"16TB1: ISMP-1",title:"Understanding the interfacial reactions between dielectrics and dielectrics for hybrid bonding applications",authors:"Prof. Changhwan Choi, Hanyang University",invited:true},
+{id:"16TB1-3",date:"2026-04-16",time:"09:30",endTime:"11:10",room:"B",session:"16TB1: ISMP-1",title:"Anisotropic Conductive Adhesive for Assembly of Microchips",authors:"Tae-il Kim, Sungkyunkwan University",invited:true},
+{id:"16TB1-4",date:"2026-04-16",time:"09:30",endTime:"11:10",room:"B",session:"16TB1: ISMP-1",title:"Signal Integrity Challenges and Opportunities in High-Density Chiplet I/O on Glass Substrates",authors:"Jimin Kwon, Sungkyunkwan University",invited:true},
+{id:"16TC1-1",date:"2026-04-16",time:"09:30",endTime:"11:10",room:"C",session:"16TC1: Ceramic Solution",title:"Feasibility study of laterally embedded ceramic inlays into silicon substrates for sensor applications",authors:"Michael Fischer et al., Ilmenau Technical University"},
+{id:"16TC1-2",date:"2026-04-16",time:"09:30",endTime:"11:10",room:"C",session:"16TC1: Ceramic Solution",title:"Silicon on Ceramic: An Innovative Technology Platform",authors:"Cathleen Kleinholz et al., Technische Universitaet Ilmenau, CiS GmbH"},
+{id:"16TC1-3",date:"2026-04-16",time:"09:30",endTime:"11:10",room:"C",session:"16TC1: Ceramic Solution",title:"Fabrication and Evaluation of Fully Embedded Silicon Strain Gauges in Ceramic Material for Wet-Wet Applications",authors:"Cathleen Kleinholz, Thomas Frank et al., CiS GmbH, VIA electronic GmbH"},
+{id:"16TD1-1",date:"2026-04-16",time:"09:30",endTime:"11:10",room:"D",session:"16TD1: Cu-Cu Bonding",title:"A mixed crystal structure for the investigation of Cu-Cu bonding",authors:"Shichen Xie, Zishan Xiong, Yingxia Liu, City University of Hong Kong"},
+{id:"16TD1-2",date:"2026-04-16",time:"09:30",endTime:"11:10",room:"D",session:"16TD1: Cu-Cu Bonding",title:"Impact of Surface Treatment Queue Time on Low-Temperature Nanocrystalline Cu Bonding",authors:"Chen-Ning Li, Artur Kolics et al. (National Yang Ming Chiao Tung University, Lam Research)"},
+{id:"16TD1-3",date:"2026-04-16",time:"09:30",endTime:"11:10",room:"D",session:"16TD1: Cu-Cu Bonding",title:"In-Sn Passivated Low Temperature and Low Pressure Cu-Cu Interconnects",authors:"Yu-Hsiang Lu et al. (National Taiwan University, Advanced Semiconductor Engineering)"},
+{id:"16TE1-1",date:"2026-04-16",time:"09:30",endTime:"11:10",room:"E",session:"16TE1: Materials-3",title:"Development of a High-Resolution, High-Reliability Photo-Imageable Dielectric",authors:"Kohei Abe et al., Resonac Corporation"},
+{id:"16TE1-2",date:"2026-04-16",time:"09:30",endTime:"11:10",room:"E",session:"16TE1: Materials-3",title:"Low-temperature Sintering Accelerating of Silver Micro-flake for Improving Interconnect Characteristics by Designing Aliphatic Epoxy-based Binder",authors:"Takanori Fukushima, Masahiro Inoue (Gunma University)"},
+{id:"16TE1-3",date:"2026-04-16",time:"09:30",endTime:"11:10",room:"E",session:"16TE1: Materials-3",title:"Morphology and Electrical Resistivity of Pyrolyzed Carbon Micro-architectures",authors:"Yu-Yen Chen, Hiroaki Tatsumi, Hiroshi Nishikawa (The University of Osaka)"},
+{id:"16TE1-4",date:"2026-04-16",time:"09:30",endTime:"11:10",room:"E",session:"16TE1: Materials-3",title:"Stretchable PEDOT:PSS Films with Enhanced Electrical and Mechanical Properties for Printed Electronics",authors:"Masahiro Inoue, Hideyo Shimizu, Gunma University"},
+{id:"16TF1-1",date:"2026-04-16",time:"09:30",endTime:"11:10",room:"F",session:"16TF1: Thermal Management-1",title:"High thermal conductive composite for efficient heat spreading through multi-dimensional strategy",authors:"Bin Xu, Junichiro Shiomi, University of Tokyo",invited:true},
+{id:"16TF1-2",date:"2026-04-16",time:"09:30",endTime:"11:10",room:"F",session:"16TF1: Thermal Management-1",title:"Ag-coated Ni Metallization for Fluxless Indium-Based TIM Bonding",authors:"Yuan-Han Ku, Cheng-Yan Yang, Yu-Hsiang Lu, C. Robert Kao (National Taiwan University)"},
+{id:"16TF1-3",date:"2026-04-16",time:"09:30",endTime:"11:10",room:"F",session:"16TF1: Thermal Management-1",title:"Thermal properties of Vertically Aligned Carbon Nanotube-based Thermal Interface Materials",authors:"Yoku Inoue et al., Shizuoka University"},
+{id:"16TA2-1",date:"2026-04-16",time:"11:25",endTime:"13:05",room:"A",session:"16TA2: Glass PKG-2",title:"Glass PLP HVM solution",authors:"Frank Su, LAM Research",invited:true},
+{id:"16TA2-2",date:"2026-04-16",time:"11:25",endTime:"13:05",room:"A",session:"16TA2: Glass PKG-2",title:"Reliability Evaluation of 40 µm-Pitch Solder Joint on Glass Interposer",authors:"Naoko Katoh, IBM",invited:true},
+{id:"16TA2-3",date:"2026-04-16",time:"11:25",endTime:"13:05",room:"A",session:"16TA2: Glass PKG-2",title:"Process Control Innovations for Glass in Advanced Packaging",authors:"Monita Pau, Onto",invited:true},
+{id:"16TA2-4",date:"2026-04-16",time:"11:25",endTime:"13:05",room:"A",session:"16TA2: Glass PKG-2",title:"Next Generation High Energy Efficiency Packaging Study",authors:"Henry Utsunomiya, Interconnection Tech",invited:true},
+{id:"16TB2-1",date:"2026-04-16",time:"11:25",endTime:"13:05",room:"B",session:"16TB2: ISMP-2",title:"Effect of Moisture on the Reliability of Advanced Packaging",authors:"Prof. Young-Chang Joo, Seoul National University",invited:true},
+{id:"16TB2-2",date:"2026-04-16",time:"11:25",endTime:"13:05",room:"B",session:"16TB2: ISMP-2",title:"Novel Electrochemical Processes for Advanced Packaging",authors:"Prof. Bongyoung Yoo, Hanyang University, ERICA",invited:true},
+{id:"16TB2-3",date:"2026-04-16",time:"11:25",endTime:"13:05",room:"B",session:"16TB2: ISMP-2",title:"Visualization of Corrosion in Electrodes Using a Conditional Diffusion Model Trained on S-Parameters",authors:"Tae Yeob Kang, The University of Suwon"},
+{id:"16TB2-4",date:"2026-04-16",time:"11:25",endTime:"13:05",room:"B",session:"16TB2: ISMP-2",title:"Clustering-Enhanced Deep Surrogate Model for Global Stress and Weak-Point Detection in Semiconductor Packaging",authors:"Boo Soo Ma, Boyeon Kim et al. (University of Suwon, KAIST)"},
+{id:"16TC2-1",date:"2026-04-16",time:"11:25",endTime:"13:05",room:"C",session:"16TC2: Direct Bonding",title:"A Process-Chemistry Map for Room-Temperature Dielectric Bonding",authors:"Yun-Hsuan Chen, Guanyu Song et al. (National Yang Ming Chiao Tung University, Lam Research)"},
+{id:"16TC2-2",date:"2026-04-16",time:"11:25",endTime:"13:05",room:"C",session:"16TC2: Direct Bonding",title:"A Comparison Study on Room Temperature Bonding of Sapphire-Sapphire and Al2O3 Film-Al2O3 Film",authors:"Kenji Uno, Ryo Takigawa, Kyushu University"},
+{id:"16TC2-3",date:"2026-04-16",time:"11:25",endTime:"13:05",room:"C",session:"16TC2: Direct Bonding",title:"Study on Surface Uniformity Improvement of Ag Nanolayer Formed by Galvanic Deposition",authors:"Quan-Wei Yip, Cheng-Min Yen, Shih-kang Lin, National Cheng Kung University"},
+{id:"16TC2-4",date:"2026-04-16",time:"11:25",endTime:"13:05",room:"C",session:"16TC2: Direct Bonding",title:"Heterogeneous Integration of LiNbO3 and Si Dies Using Room-Temperature Au-Au Bonding in Ambient Air With O2 Plasma Treatment",authors:"Matsunobu Kosei, Takigawa Ryo, Kyushu University"},
+{id:"16TD2-1",date:"2026-04-16",time:"11:25",endTime:"13:05",room:"D",session:"16TD2: Interconnection",title:"Reliability Assessment of Hybrid Bonding Interconnects under Electromigration Stress",authors:"Min-Yan Tsai et al., Advanced Semiconductor Engineering"},
+{id:"16TD2-2",date:"2026-04-16",time:"11:25",endTime:"13:05",room:"D",session:"16TD2: Interconnection",title:"Enhanced electromigration resistance by nanotwinned Cu-Ag Interconnects for advanced packaging",authors:"Fan-Yi Ouyang, Peng-Hsiang Hsu, National Tsing Hua University"},
+{id:"16TD2-3",date:"2026-04-16",time:"11:25",endTime:"13:05",room:"D",session:"16TD2: Interconnection",title:"Characterization for the Bottom Joint of Stacked Micro-Via Integrated in the Substrate by ToF-SIMS and STEM",authors:"Masahiko Nishijima et al. (SANKEN/The University of Osaka, Okuno Chemical Industries)"},
+{id:"16TD2-4",date:"2026-04-16",time:"11:25",endTime:"13:05",room:"D",session:"16TD2: Interconnection",title:"Corrosion behavior of Cu-to-Cu direct bonding by refill friction stir spot welding for busbar application",authors:"Hayoung Yu et al. (KITECH, Seoul National University)"},
+{id:"16TE2-1",date:"2026-04-16",time:"11:25",endTime:"13:05",room:"E",session:"16TE2: Materials-4",title:"Low-Temperature Sintering of Cu Microparticle/CuXO Nanoparticle Composite Pastes for High-Strength Bonding",authors:"Tetsu Yonezawa, Takashi Aso (Hokkaido University, Chulalongkorn University)"},
+{id:"16TE2-2",date:"2026-04-16",time:"11:25",endTime:"13:05",room:"E",session:"16TE2: Materials-4",title:"Octylamine-Assisted Copper Metal-Organic Decomposition Ink for Low-Temperature Sintering",authors:"Zheng Yi, Tsukamoto Hiroki, Yonezawa Takaaki (Hokkaido University, Chulalongkorn University)"},
+{id:"16TE2-3",date:"2026-04-16",time:"11:25",endTime:"13:05",room:"E",session:"16TE2: Materials-4",title:"High-Strength Cu Joint Fabricated Using Bimodal-Sized Cu Nanoparticles",authors:"Qianhao Zuo, Tetsu Yonezawa, Hokkaido University"},
+{id:"16TE2-4",date:"2026-04-16",time:"11:25",endTime:"13:05",room:"E",session:"16TE2: Materials-4",title:"Surface Modification of Fine Grain Copper for Low Temperature Hybrid Bonding",authors:"Taiki Miyamoto, Kenta Hayama et al. (Yokohama National University, Okuno Chemical Industries)"},
+{id:"16TF2-1",date:"2026-04-16",time:"11:25",endTime:"13:05",room:"F",session:"16TF2: Thermal Management-2",title:"Room Temperature Direct InP/SiC Bonding via SAB For Improved Thermal Performance",authors:"Jumpei Nakamura, Ryo Takigawa, Kyushu University"},
+{id:"16TF2-2",date:"2026-04-16",time:"11:25",endTime:"13:05",room:"F",session:"16TF2: Thermal Management-2",title:"Development of high heat dissipation insulated metal substrates using thin insulating films",authors:"Yukihiro Watanabe et al., Niterra Co., Ltd., NTK Ceramic Co., Ltd."},
+{id:"16TF2-3",date:"2026-04-16",time:"11:25",endTime:"13:05",room:"F",session:"16TF2: Thermal Management-2",title:"On the Temperature Measurement of on-state GaN-HEMT by Raman Spectroscopy",authors:"Kensuke Sagawa et al. (Institute of Science Tokyo, WOW Alliance, ANVOS Analytics)"},
+{id:"16TF2-4",date:"2026-04-16",time:"11:25",endTime:"13:05",room:"F",session:"16TF2: Thermal Management-2",title:"Investigation of Thermal Transient Measurement Methods of Cascode GaN HEMT Devices",authors:"Wasanthamala Badalawa, Yoshitaka Aoki, Siemens"},
+{id:"16TA3-1",date:"2026-04-16",time:"13:55",endTime:"15:35",room:"A",session:"16TA3: HIR",title:"Heterogeneous Integration Roadmap - A Vision for the Future of Electronics",authors:"Rozalia Beica, Rapidus",invited:true},
+{id:"16TA3-2",date:"2026-04-16",time:"13:55",endTime:"15:35",room:"A",session:"16TA3: HIR",title:"Advanced Packaging Heterogeneous Integration for AI",authors:"CP. Hung, ASE",invited:true},
+{id:"16TA3-3",date:"2026-04-16",time:"13:55",endTime:"15:35",room:"A",session:"16TA3: HIR",title:"Evolution of Wafer Level Packaging Roadmap: Technical and Structural Advancements Toward Heterogeneous Integration",authors:"Farhang Yazdani, BroadPak",invited:true},
+{id:"16TB3-1",date:"2026-04-16",time:"13:55",endTime:"15:35",room:"B",session:"16TB3: SMTA",title:"Glass/LTCC Composite Substrates as Completely Inorganic Packaging Interposer",authors:"Jens Mueller, Technische Universität Ilmenau",invited:true},
+{id:"16TB3-2",date:"2026-04-16",time:"13:55",endTime:"15:35",room:"B",session:"16TB3: SMTA",title:"Robust Ceramic Components and Packages for Modern Lithography Systems",authors:"Markus Eberstein, ASML",invited:true},
+{id:"16TB3-3",date:"2026-04-16",time:"13:55",endTime:"15:35",room:"B",session:"16TB3: SMTA",title:"Aging Effects on the Thermal Cycling Reliability of Ball Grid Array Assemblies",authors:"Jeffrey C Suhling, Auburn University",invited:true},
+{id:"16TB3-4",date:"2026-04-16",time:"13:55",endTime:"15:35",room:"B",session:"16TB3: SMTA",title:"Precision Laser Ablation for Conformal Coating Patterning/Rework in High-Reliability PCBs",authors:"Markus Bohrer, Dr. Bohrer LaserTec GmbH",invited:true},
+{id:"16TC3-1",date:"2026-04-16",time:"13:55",endTime:"15:35",room:"C",session:"16TC3: Process Development-1",title:"Heterogeneous Device Structure without Underfill Connected with Submicron Gold Particle Bump and Seal by Chip on Wafer Process",authors:"Takashi Imahigashi, Sony Semiconductor Manufacturing Corp."},
+{id:"16TC3-2",date:"2026-04-16",time:"13:55",endTime:"15:35",room:"C",session:"16TC3: Process Development-1",title:"Design for Functional Resin Filling Process in Direct Nanoimprint Lithography",authors:"Ryuhei Yamamura et al. (Panasonic Holdings, Osaka Metropolitan University)"},
+{id:"16TC3-3",date:"2026-04-16",time:"13:55",endTime:"15:35",room:"C",session:"16TC3: Process Development-1",title:"Fine-pitch Copper Wiring Formation on Build-up Film fabricated by Silver-seed Semi-Additive Process",authors:"Wataru Fujikawa et al., DIC Corporation"},
+{id:"16TD3-1",date:"2026-04-16",time:"13:55",endTime:"15:35",room:"D",session:"16TD3: DMR-E",title:"Signal Integrity and Mechanical Design for Mounting HBM4 on an Organic Interposer",authors:"Taishi Yamaguchi et al., SHINKO ELECTRIC INDUSTRIES"},
+{id:"16TD3-2",date:"2026-04-16",time:"13:55",endTime:"15:35",room:"D",session:"16TD3: DMR-E",title:"Methods for Extracting the Electrical Characteristics of FC-BGA Packages under Thermal Conditions",authors:"Aki Tanaka, Satoshi Nakamura, KYOCERA Corporation"},
+{id:"16TD3-3",date:"2026-04-16",time:"13:55",endTime:"15:35",room:"D",session:"16TD3: DMR-E",title:"Method for Predicting the Impact of Manufacturing Variations Using S-Parameters",authors:"Satoshi Nakamura, Aki Tanaka, KYOCERA Corporation"},
+{id:"16TD3-4",date:"2026-04-16",time:"13:55",endTime:"15:35",room:"D",session:"16TD3: DMR-E",title:"Study on Acceleration of Preconditioning for Solderability Testing",authors:"Takaaki Sensui, Hideyuki Nagai, TDK Corporation"},
+{id:"16TE3-1",date:"2026-04-16",time:"13:55",endTime:"15:35",room:"E",session:"16TE3: Materials-5",title:"Influence of Indium on the Strength, Ductility and Soldering Behavior of Sn-Bi Alloys on Copper",authors:"Chih-Hsiang Liu et al., Feng Chia University"},
+{id:"16TE3-2",date:"2026-04-16",time:"13:55",endTime:"15:35",room:"E",session:"16TE3: Materials-5",title:"Minor Indium Additions to Sn-Bi Alloys - Properties and Corrosion",authors:"Jia-Xiang Gao et al., Feng Chia University"},
+{id:"16TE3-3",date:"2026-04-16",time:"13:55",endTime:"15:35",room:"E",session:"16TE3: Materials-5",title:"Microstructural Refinement and Solidification Behavior in Sn-In Composite Solders with NiO-Coated ZrO2 Nanoparticles",authors:"Shunya Nitta et al. (The University of Osaka, NIFS)"},
+{id:"16TE3-4",date:"2026-04-16",time:"13:55",endTime:"15:35",room:"E",session:"16TE3: Materials-5",title:"In-situ observation of BiIn2(Sn) dissolution in low temperature In-Sn-Bi alloys",authors:"Jiye Zhou, Xin Fu Tan, Stuart McDonald, Kazuhiro Nogita (The University of Queensland)"},
+{id:"16TF3-1",date:"2026-04-16",time:"13:55",endTime:"15:35",room:"F",session:"16TF3: Thermal Management-3",title:"A New Thermal Conductivity Measurement Methodology",authors:"Tomoaki Hara et al. (THERDEAU, Luology, The University of Osaka)"},
+{id:"16TF3-2",date:"2026-04-16",time:"13:55",endTime:"15:35",room:"F",session:"16TF3: Thermal Management-3",title:"Investigating the Thermal Resistance of the Si and Epoxy Interface",authors:"Wei-Cheng Huang et al., ACE Group Chung-Li Branch"},
+{id:"16TF3-3",date:"2026-04-16",time:"13:55",endTime:"15:35",room:"F",session:"16TF3: Thermal Management-3",title:"Cooling Performance Improvement of Heat Sinks by Utilizing Thermal Impedance Distribution",authors:"Koji Nishi, Ashikaga University"},
+{id:"16TF3-4",date:"2026-04-16",time:"13:55",endTime:"15:35",room:"F",session:"16TF3: Thermal Management-3",title:"From Package to Power Integration: Enhancing Energy Efficiency through Improved Thermal Dissipation",authors:"Chesheng Kung, Hao Yu Lu, Micron Memory Taiwan"},
+{id:"16TA4-1",date:"2026-04-16",time:"15:50",endTime:"17:30",room:"A",session:"16TA4: PLP",title:"The Future of Advanced Package for AI Application",authors:"Takashi Kariya, Samsung Electronics",invited:true},
+{id:"16TA4-2",date:"2026-04-16",time:"15:50",endTime:"17:30",room:"A",session:"16TA4: PLP",title:"An Experience-Driven Advanced Digital Lithography System for Panel Applications",authors:"Yusuke Matsuhashi et al., Nikon",invited:true},
+{id:"16TA4-3",date:"2026-04-16",time:"15:50",endTime:"17:30",room:"A",session:"16TA4: PLP",title:"Considerations for Implementing CMP in Panel-Level Packaging",authors:"Haedo Jeong, Pusan National University",invited:true},
+{id:"16TA4-4",date:"2026-04-16",time:"15:50",endTime:"17:30",room:"A",session:"16TA4: PLP",title:"Advanced EDA Solution for Chiplet and 3D-IC Design",authors:"Ksenia Roze, Mark Gerber, Cadence Design Systems",invited:true},
+{id:"16TB4-1",date:"2026-04-16",time:"15:50",endTime:"17:30",room:"B",session:"16TB4: Setouchi",title:"Si-based optical interface devices for photonics electronics convergence technology",authors:"Hideki Gotoh, Hiroshima University",invited:true},
+{id:"16TB4-2",date:"2026-04-16",time:"15:50",endTime:"17:30",room:"B",session:"16TB4: Setouchi",title:"SiC CMOS Integrated Circuits and Image Sensors for Extreme Environment Applications",authors:"Shin-Ichiro Kuroki, Hiroshima University",invited:true},
+{id:"16TB4-3",date:"2026-04-16",time:"15:50",endTime:"17:30",room:"B",session:"16TB4: Setouchi",title:"Challenge & Opportunity for Advanced Packaging",authors:"Takashi Hayakawa, Tokyo Electron",invited:true},
+{id:"16TC4-1",date:"2026-04-16",time:"15:50",endTime:"17:30",room:"C",session:"16TC4: Process Development-2",title:"Study on the Blind Via Hole Metallization Method for High-Speed Transmission Using Hybrid Desmear and High-Reliability Electroless Copper Plating",authors:"Tomoya Sawada, Okuno chemical industries"},
+{id:"16TC4-2",date:"2026-04-16",time:"15:50",endTime:"17:30",room:"C",session:"16TC4: Process Development-2",title:"Interfacial Reactions in the Cu/Sn/Ni Sandwich Couples in 3D IC Packaging",authors:"Yen-Ling Chen et al. (National Taiwan University of Science and Technology)"},
+{id:"16TC4-3",date:"2026-04-16",time:"15:50",endTime:"17:30",room:"C",session:"16TC4: Process Development-2",title:"Optimization of Encapsulation process for Advanced package using simulation",authors:"Kazuki Noguchi, Shen Leo (SANYU REC, Coretech)"},
+{id:"16TC4-4",date:"2026-04-16",time:"15:50",endTime:"17:30",room:"C",session:"16TC4: Process Development-2",title:"Accurate identification of submicron-sized particle on a copper substrate",authors:"Michael Lo, Naoki Baden (Photothermal Spectroscopy Corp., Nihon Thermal Consulting)"},
+{id:"16TD4-1",date:"2026-04-16",time:"15:50",endTime:"17:30",room:"D",session:"16TD4: Mech simulation-1",title:"Multiphysics Analysis of Magnetic Thin-Film Inductors",authors:"Yung Ching Chao et al. (National Chiayi University, National Chung Cheng University)"},
+{id:"16TD4-2",date:"2026-04-16",time:"15:50",endTime:"17:30",room:"D",session:"16TD4: Mech simulation-1",title:"Advanced Simulation Techniques for Predicting Warpage Behavior in Automotive Electronic Assemblies",authors:"Weng ChihYang et al. (WNC Corp., National Tsing Hua University)"},
+{id:"16TD4-3",date:"2026-04-16",time:"15:50",endTime:"17:30",room:"D",session:"16TD4: Mech simulation-1",title:"Systematically Optimized Ensemble Stacking Learning Framework for Process-Induced Warpage Prediction in SiC Power Modules",authors:"HsiangYu Hsu et al., Feng Chia University"},
+{id:"16TD4-4",date:"2026-04-16",time:"15:50",endTime:"17:30",room:"D",session:"16TD4: Mech simulation-1",title:"Warpage Simulation Development for PCB Packaging in AI Drives under Reliability Conditions",authors:"Shifa Zehruddin Desai et al. (National Tsing Hua University, Wistron Corporation)"},
+{id:"16TE4-1",date:"2026-04-16",time:"15:50",endTime:"17:30",room:"E",session:"16TE4: Materials-6",title:"Tensile properties of Sn-37Bi-0.5Sb-0.5Cu-0.03Ni low-temperature soldering alloy",authors:"Xiaozhou Ye et al. (The University of Queensland, Nihon Superior)"},
+{id:"16TE4-2",date:"2026-04-16",time:"15:50",endTime:"17:30",room:"E",session:"16TE4: Materials-6",title:"In-situ SEM Investigation of Tensile Deformation of Various Sn-xBi Solder Alloys",authors:"Yi-Hsiang Yen, Yu-Hsin Lin, C. Kao, National Taiwan University"},
+{id:"16TE4-3",date:"2026-04-16",time:"15:50",endTime:"17:30",room:"E",session:"16TE4: Materials-6",title:"Effect of Sb Addition on the Tensile and Creep Properties of Sn-(58-x)Bi-xSb Low-Temperature Solders",authors:"Zhi AI, Yu chen Liu, National Cheng Kung University"},
+{id:"16TE4-4",date:"2026-04-16",time:"15:50",endTime:"17:30",room:"E",session:"16TE4: Materials-6",title:"Machine Learning-Based Prediction of Electromigration-Induced Resistance Change in Sn-Bi Low-Temperature Solders",authors:"Chi Chen, Yu-chen Liu, National Cheng Kung University"},
+{id:"16TF4-1",date:"2026-04-16",time:"15:50",endTime:"17:30",room:"F",session:"16TF4: Thermal Management-4",title:"Design and Evaluation of Microchannel Cooling Modules for 2.5D Multi-Hotspot High-Power Packages",authors:"Yu-hao Lo et al. (National Cheng Kung University, ASE, Chiba University)"},
+{id:"16TF4-2",date:"2026-04-16",time:"15:50",endTime:"17:30",room:"F",session:"16TF4: Thermal Management-4",title:"Maximized manufacturing flexibility and convective heat transfer characteristics of direct cooling method for large-area power electronics heat sink",authors:"Byeongchan Kim et al. (KITECH, Korea University)"},
+{id:"16TF4-3",date:"2026-04-16",time:"15:50",endTime:"17:30",room:"F",session:"16TF4: Thermal Management-4",title:"Effect of Thermal Properties of Dielectric Liquids on Breathing Phenomenon Induced by Lotus-Type Porous Copper",authors:"Toshiya Okafuji et al. (Tokyo University of Science-Yamaguchi, Lotus Thermal Solution Inc.)"},
+
+// ---- April 17 (Friday) ----
+{id:"17-K4",date:"2026-04-17",time:"09:00",endTime:"09:45",room:"ALL",session:"Keynote IV",title:"The Future of Computing",authors:"Norishige Morimoto, IBM Japan, Ltd.",invited:true,common:true,chairs:"Yasuhiro Morikawa, ULVAC; Toyohiro Aoki, IBM Research"},
+{id:"17FA1-1",date:"2026-04-17",time:"10:00",endTime:"11:40",room:"A",session:"17FA1: IMPACT",title:"Innovative Tools and Materials for Advanced Packaging Developed in Taiwan",authors:"Dr. Chien-Yung Ma, Forcera Materials Inc.",invited:true},
+{id:"17FA1-2",date:"2026-04-17",time:"10:00",endTime:"11:40",room:"A",session:"17FA1: IMPACT",title:"Diamond Thermal Solutions for Emerging High-Heat-Flux and High-Power Semiconductor Packaging",authors:"Yonhua Tzeng (National Cheng Kung University, National Tsinghua University)",invited:true},
+{id:"17FA1-3",date:"2026-04-17",time:"10:00",endTime:"11:40",room:"A",session:"17FA1: IMPACT",title:"Integrating Solutions for Advanced Packaging Complexity",authors:"Dr. Shin-Puu Jeng, Applied Materials",invited:true},
+{id:"17FA1-4",date:"2026-04-17",time:"10:00",endTime:"11:40",room:"A",session:"17FA1: IMPACT",title:"Fine/coarse-grained Composite Structure for Cu-Cu Direct Bonding",authors:"Prof. Chih-Ming Chen, National Chung Hsing University",invited:true},
+{id:"17FB1-1",date:"2026-04-17",time:"10:00",endTime:"11:40",room:"B",session:"17FB1: Printed Electronics",title:"Printed Organic Thin-Film Transistors for Large-Area Integrated Electronics",authors:"Prof. Xuying Liu, Zhengzhou University",invited:true},
+{id:"17FB1-2",date:"2026-04-17",time:"10:00",endTime:"11:40",room:"B",session:"17FB1: Printed Electronics",title:"Low-temperature copper sinter-joining technology for next-generation electronics",authors:"Prof. Wanli Li, Jiangnan University",invited:true},
+{id:"17FB1-3",date:"2026-04-17",time:"10:00",endTime:"11:40",room:"B",session:"17FB1: Printed Electronics",title:"Directed self-assembly for high resolution stretchable electronics",authors:"Dr. Lingying Li, NIMS",invited:true},
+{id:"17FC1-1",date:"2026-04-17",time:"10:00",endTime:"11:40",room:"C",session:"17FC1: Hybrid Bonding-1",title:"D2W Hybrid Bonding - an equipment supplier perspective",authors:"Jonathan Abdilla, Besi",invited:true},
+{id:"17FC1-2",date:"2026-04-17",time:"10:00",endTime:"11:40",room:"C",session:"17FC1: Hybrid Bonding-1",title:"Low Temperature Hybrid Bonding Process by Surface Modification using Low-Molecular-Weight Organic Material",authors:"Chihiro Nakagawa et al. (Daikin Industries, AIST)"},
+{id:"17FC1-3",date:"2026-04-17",time:"10:00",endTime:"11:40",room:"C",session:"17FC1: Hybrid Bonding-1",title:"In-situ Analysis of SiO2 Surface Chemistry Evolution During N2 Annealing for Hybrid Bonding Applications",authors:"Haibo Yang et al., Institute of Microelectronics, Chinese Academy of Sciences"},
+{id:"17FC1-4",date:"2026-04-17",time:"10:00",endTime:"11:40",room:"C",session:"17FC1: Hybrid Bonding-1",title:"High-Resolution 3D X-Ray Imaging of Hybrid Bonding",authors:"Till Dreier, Daniel Nilsson, Shiho Tanaka, Excillum AB"},
+{id:"17FD1-1",date:"2026-04-17",time:"10:00",endTime:"11:40",room:"D",session:"17FD1: Mech simulation-2",title:"Physical Estimation of Epoxy Flux Pattern Design of Multi-Chip Module Packaging",authors:"Kuan-Wei Chou et al. (National Tsing Hua University, WNC Corporation)"},
+{id:"17FD1-2",date:"2026-04-17",time:"10:00",endTime:"11:40",room:"D",session:"17FD1: Mech simulation-2",title:"Simulation of NSMD Type in CUF Parameters and Substrates on Reliability",authors:"Tzu Chieh Chien et al., Advanced Semiconductor Engineering"},
+{id:"17FD1-3",date:"2026-04-17",time:"10:00",endTime:"11:40",room:"D",session:"17FD1: Mech simulation-2",title:"Capillary Underfill Simulation across Die-to-Die Gap Using Hybrid EBG Modeling",authors:"Leo Shen et al. (CoreTech System/Moldex3D, Sanyu rec)"},
+{id:"17FD1-4",date:"2026-04-17",time:"10:00",endTime:"11:40",room:"D",session:"17FD1: Mech simulation-2",title:"Numerical Simulation and Machine Learning-Based Optimization of Mass Reflow Temperature Profiles in Batch-Produced System-in-Packages",authors:"Ian Hu, Xuan-Zhi Kuo, National Kaohsiung University of Science and Technology"},
+{id:"17FE1-1",date:"2026-04-17",time:"10:00",endTime:"11:40",room:"E",session:"17FE1: High-Speed, Wireless & Components",title:"A Compact Dual-Band AiP Integrated Beamforming IC Using Package-on-Package Technology for Mobile Devices",authors:"Sheng-Chi Hsieh, Advanced Semiconductor Engineering"},
+{id:"17FE1-2",date:"2026-04-17",time:"10:00",endTime:"11:40",room:"E",session:"17FE1: High-Speed, Wireless & Components",title:"Design of millimeter-wave antenna array in package featured with bandpass impedance transformation",authors:"Simin Wang et al. (National Chung Cheng University, ASE)"},
+{id:"17FE1-3",date:"2026-04-17",time:"10:00",endTime:"11:40",room:"E",session:"17FE1: High-Speed, Wireless & Components",title:"Fabrication tolerance analysis of multi-layers package substrate for 5G mmWave Antenna in Package/Module (AiP/AiM)",authors:"Cheng Yu HO, Pingtung"},
+{id:"17FE1-4",date:"2026-04-17",time:"10:00",endTime:"11:40",room:"E",session:"17FE1: High-Speed, Wireless & Components",title:"Development of Integrated Q-band 4x4 Phased-Array Module with High Aspect Ratio Cu-Pillar Pins and M7-Level SLP for High-Efficiency mmWave NTN Applications",authors:"Li-Cheng Shen et al. (USI, TMYTEK)"},
+{id:"17FF1-1",date:"2026-04-17",time:"10:00",endTime:"11:40",room:"F",session:"17FF1: Power Electronics-1",title:"Development of Low-Temperature Air-Sinterable Copper Paste for Die Attach and Substrate-to-Heatsink Bonding",authors:"Chuantong Chen et al. (The University of Osaka, Yamato Scientific)"},
+{id:"17FF1-2",date:"2026-04-17",time:"10:00",endTime:"11:40",room:"F",session:"17FF1: Power Electronics-1",title:"Room Temperature Chip Bonding of SiC And Cu Using Activated Cu Atomic Layer",authors:"Ryohei Yamauchi, Jun Utsumi, Ryo Takigawa, Kyushu University"},
+{id:"17FF1-3",date:"2026-04-17",time:"10:00",endTime:"11:40",room:"F",session:"17FF1: Power Electronics-1",title:"X-ray Orientation Microscopy for Non-destructive Observation of Grain Boundaries in Die-attach Solder",authors:"Yujiro Hayashi et al. (RIKEN SPring-8 Center, Osaka University)"},
+{id:"17FA2-1",date:"2026-04-17",time:"12:30",endTime:"14:10",room:"A",session:"17FA2: Glass-PKG3",title:"Progress and Remaining Challenges for Glass Core Substrates",authors:"Jan Vardaman, TechSearch",invited:true},
+{id:"17FA2-2",date:"2026-04-17",time:"12:30",endTime:"14:10",room:"A",session:"17FA2: Glass-PKG3",title:"Enabling Next-Generation Packaging with Glass and Quartz Core Substrates",authors:"Jonas Discher, PlanOptik",invited:true},
+{id:"17FA2-3",date:"2026-04-17",time:"12:30",endTime:"14:10",room:"A",session:"17FA2: Glass-PKG3",title:"Glass core evaluation method",authors:"Prof. MingYi Tsai / T. Onishi, CGU / GJT",invited:true},
+{id:"17FA2-4",date:"2026-04-17",time:"12:30",endTime:"14:10",room:"A",session:"17FA2: Glass-PKG3",title:"Development of glass core multilayer build-up substrate with TGV",authors:"Jun Yoshiike et al., Shinko Electric Industries"},
+{id:"17FB2-1",date:"2026-04-17",time:"12:30",endTime:"14:10",room:"B",session:"17FB2: ICEPT",title:"Advancements in Ultra-High Aspect Ratio Via Interconnection Technology Enabled by Atomic Layer Deposition",authors:"Daquan Yu, Xiamen Sky Semiconductor Co., Ltd.",invited:true},
+{id:"17FB2-2",date:"2026-04-17",time:"12:30",endTime:"14:10",room:"B",session:"17FB2: ICEPT",title:"Thermal Management of Chip",authors:"Wei Wang, Peking University",invited:true},
+{id:"17FB2-3",date:"2026-04-17",time:"12:30",endTime:"14:10",room:"B",session:"17FB2: ICEPT",title:"The Simulation and Testing of UCIe Power Noise Based on Chiplet",authors:"Chenxi Yang, Sanechips Technology Co., Ltd.",invited:true},
+{id:"17FB2-4",date:"2026-04-17",time:"12:30",endTime:"14:10",room:"B",session:"17FB2: ICEPT",title:"SiC Advanced Packaging and All-Copper Solutions",authors:"Huaiyu Ye, Southern University of Science and Technology",invited:true},
+{id:"17FC2-1",date:"2026-04-17",time:"12:30",endTime:"14:10",room:"C",session:"17FC2: Hybrid Bonding-2",title:"Development of Anti-oxidation Technology for Cu Direct Bonding via Ascorbic Acid Vapor",authors:"Jeehoo Na et al. (KITECH, Sungkyunkwan University)"},
+{id:"17FC2-2",date:"2026-04-17",time:"12:30",endTime:"14:10",room:"C",session:"17FC2: Hybrid Bonding-2",title:"Electrodeposition of (111)-Oriented Cu Using Accelerator for Cu-Cu Direct Bonding",authors:"Soojin Kim, Hanyang University"},
+{id:"17FC2-3",date:"2026-04-17",time:"12:30",endTime:"14:10",room:"C",session:"17FC2: Hybrid Bonding-2",title:"Effect of Pressure on Grain Growth in Nanocrystalline Cu for Low-Temperature Cu-Cu Bonding",authors:"Ting-Chi Chen, Chih Chen, National Yang Ming Chiao Tung University"},
+{id:"17FD2-1",date:"2026-04-17",time:"12:30",endTime:"14:10",room:"D",session:"17FD2: Reliability-1",title:"In-situ observation of dislocation movement, accumulation and crack propagation during tensile loading in Sn and Sn-based solder alloys",authors:"Kazuhiro Nogita et al. (The University of Queensland, Nihon Superior, Kyushu University)"},
+{id:"17FD2-2",date:"2026-04-17",time:"12:30",endTime:"14:10",room:"D",session:"17FD2: Reliability-1",title:"The role of densification on deformation behavior of sintered Ag during nanoindentation creep testing",authors:"Seonghwan Park, Hiroaki Tatsumi, Hiroshi Nishikawa (The University of Osaka)"},
+{id:"17FD2-3",date:"2026-04-17",time:"12:30",endTime:"14:10",room:"D",session:"17FD2: Reliability-1",title:"Defects in Cu-filled through-silicon vias (TSV) after thermal cycling",authors:"Zishan Xiong et al. (City University of Hong Kong, Wuhan University)"},
+{id:"17FE2-1",date:"2026-04-17",time:"12:30",endTime:"14:10",room:"E",session:"17FE2: Material Processing",title:"Comparison of Cu diffusion barrier properties of Electroless-plated CoWB and CoMn alloy films formed on SiO2/Si",authors:"Shoso Shingubara, Tomohiro Shimizu, Takeshi Ito, Kansai University"},
+{id:"17FE2-2",date:"2026-04-17",time:"12:30",endTime:"14:10",room:"E",session:"17FE2: Material Processing",title:"Photon-removable Protective Molecular Nanolayers for Enhancing Cu to Cu Direct Bonding",authors:"WeiTing Chen et al. (National Chung Hsing University, Tohoku University)"},
+{id:"17FE2-3",date:"2026-04-17",time:"12:30",endTime:"14:10",room:"E",session:"17FE2: Material Processing",title:"Effect of Binder Chemistry on Dynamic Percolation of Stretchable Printed Wires During Vacuum Foaming",authors:"Rina Aida, Masahiro Inoue, Gunma University"},
+{id:"17FE2-4",date:"2026-04-17",time:"12:30",endTime:"14:10",room:"E",session:"17FE2: Material Processing",title:"Advanced Hybrid Smear Removal Process with Excimer VUV Treatment for Next-Generation Organic Substrate Packaging",authors:"Taro Arimoto et al. (USHIO Inc., Okuno chemical industries, Shikoku chemicals)"},
+{id:"17FF2-1",date:"2026-04-17",time:"12:30",endTime:"14:10",room:"F",session:"17FF2: Power Electronics-2",title:"Near-Chip 3D Functionalization of Direct Copper Bonded Substrates in Power Electronic Modules",authors:"Christoph Hecht et al. (Friedrich-Alexander-University Erlangen-Nuremberg, Siemens AG)"},
+{id:"17FF2-2",date:"2026-04-17",time:"12:30",endTime:"14:10",room:"F",session:"17FF2: Power Electronics-2",title:"Heatsink Design and Wire Bonding Failure Analysis of an Automotive 1.2 kV SiC MOSFET Power Module in Power Cycling Tests",authors:"Po-Kai Chiu et al., Industrial Technology Research Institute"},
+{id:"17FF2-3",date:"2026-04-17",time:"12:30",endTime:"14:10",room:"F",session:"17FF2: Power Electronics-2",title:"Reliability and Thermal Resistance Characterization of Flip-Chip Interconnections in Gallium Nitride Devices Using Silver Sintering Materials",authors:"Ching Kuan Lee et al., Industrial Technology Research Institute"},
+{id:"17FF2-4",date:"2026-04-17",time:"12:30",endTime:"14:10",room:"F",session:"17FF2: Power Electronics-2",title:"Junction Temperature Estimation Error of Chip-Embedded Temperature Sensor During Transient Thermal Measurement",authors:"Shuhei Fukunaga, Tsuyoshi Funaki, The University of Osaka"},
+{id:"17FA3-1",date:"2026-04-17",time:"14:25",endTime:"16:05",room:"A",session:"17FA3: Glass PKG-4",title:"Physical Estimation for Residual Stress of Glass Substrate through Photoelasticity-FEA Hybrid Model",authors:"Jui-Chang Chuang et al. (ITRI, National Tsing Hua University)"},
+{id:"17FA3-2",date:"2026-04-17",time:"14:25",endTime:"16:05",room:"A",session:"17FA3: Glass PKG-4",title:"Micro-crack-free Laser Singulation and melting TGV for Glass Substrate",authors:"Eunsuk Jeon et al., Laserapps Co. Ltd."},
+{id:"17FA3-3",date:"2026-04-17",time:"14:25",endTime:"16:05",room:"A",session:"17FA3: Glass PKG-4",title:"Analysis of Fracture Mechanism During the Dicing Process of Glass Substrates",authors:"Chuan Chen, Institute of Microelectronics, Chinese Academy of Sciences"},
+{id:"17FB3-1",date:"2026-04-17",time:"14:25",endTime:"16:05",room:"B",session:"17FB3: Co-packaged OPT",title:"Optical Chiplet Using Membrane III-V Photonic Devices",authors:"Suguru Yamaoka, NTT Device Innovation Center",invited:true},
+{id:"17FB3-2",date:"2026-04-17",time:"14:25",endTime:"16:05",room:"B",session:"17FB3: Co-packaged OPT",title:"High-integration thin-film lithium niobate modulator based on heterogeneous integration technology",authors:"Shuntaro Makino, FITEL Optical Components",invited:true},
+{id:"17FB3-3",date:"2026-04-17",time:"14:25",endTime:"16:05",room:"B",session:"17FB3: Co-packaged OPT",title:"Fusion of Electric and Photonic Interconnects: An Advanced Packaging Perspective",authors:"Vincent Lin, ASE Group",invited:true},
+{id:"17FB3-4",date:"2026-04-17",time:"14:25",endTime:"16:05",room:"B",session:"17FB3: Co-packaged OPT",title:"Multi-Die Optical Chiplet Packaging for AI Scale-Up and Scale-Out",authors:"Surya Bhattacharya, A*STAR / IME",invited:true},
+{id:"17FC3-1",date:"2026-04-17",time:"14:25",endTime:"16:05",room:"C",session:"17FC3: Hybrid Bonding-3",title:"Establishment of High-Yield and Reliable Cu-Cu Connections with 0.8 um Pitch Integration",authors:"Hitomi Shiina et al., Sony Semiconductor Solutions Corporation"},
+{id:"17FC3-2",date:"2026-04-17",time:"14:25",endTime:"16:05",room:"C",session:"17FC3: Hybrid Bonding-3",title:"Copper oxide in TCB Cu-Cu bonding",authors:"Kun-Yuan Zeng, Shih-Kang Lin, National Cheng Kung University"},
+{id:"17FC3-3",date:"2026-04-17",time:"14:25",endTime:"16:05",room:"C",session:"17FC3: Hybrid Bonding-3",title:"Surface Reduction and Self-Passivation in a Single-Step Ar/CH4 Plasma treatment for Hybrid Cu Bonding",authors:"Hoogwan Lee et al., Seoul National University of Science and Technology"},
+{id:"17FC3-4",date:"2026-04-17",time:"14:25",endTime:"16:05",room:"C",session:"17FC3: Hybrid Bonding-3",title:"Advancing Cu-Cu Direct Bonding Through Optimized Surface Treatment Strategies",authors:"Kinga Kondracka et al. (KU Leuven, imec, Xenics)"},
+{id:"17FD3-1",date:"2026-04-17",time:"14:25",endTime:"16:05",room:"D",session:"17FD3: Reliability-2",title:"Lifetime Prediction of Die Cracking in Heatsink-Clamped FCQFN Packages under Thermomechanical Loading",authors:"Weiquan Luo et al. (HKUST Guangzhou)"},
+{id:"17FD3-2",date:"2026-04-17",time:"14:25",endTime:"16:05",room:"D",session:"17FD3: Reliability-2",title:"Thermal and Drop Reliability Performance of Low Temperature Solder in Fan-Out WLCSP Structure",authors:"Nien Chun Lin et al., Advanced Semiconductor Engineering"},
+{id:"17FD3-3",date:"2026-04-17",time:"14:25",endTime:"16:05",room:"D",session:"17FD3: Reliability-2",title:"Deep Learning Based Reliability Prediction for BL-TCT Lifetime of Molded FCBGA Packages",authors:"Tang-Yuan Chen et al., Advanced Semiconductor Engineering"},
+{id:"17FE3-1",date:"2026-04-17",time:"14:25",endTime:"16:05",room:"E",session:"17FE3: Measurement Method",title:"Integrating Mechanical and Chemical Insights Into Bonding Interfaces via DCB-Based Delamination Analysis",authors:"Shumpei Murakami et al., Yokohama National University"},
+{id:"17FE3-2",date:"2026-04-17",time:"14:25",endTime:"16:05",room:"E",session:"17FE3: Measurement Method",title:"Quantitative Assessment of Bond Strength for Hybrid Bonding",authors:"Ryuki Kusakabe et al. (Yokohama National University, DISCO Corporation)"},
+{id:"17FE3-3",date:"2026-04-17",time:"14:25",endTime:"16:05",room:"E",session:"17FE3: Measurement Method",title:"Performance of Machine Learning Algorithms for Real-Time Temperature Measurement Using Optical-Interference Contactless Thermometry",authors:"Jiawen Yu, Hiroaki Hanafusa, Seiichiro Higashi, Hiroshima University"},
+{id:"17FE3-4",date:"2026-04-17",time:"14:25",endTime:"16:05",room:"E",session:"17FE3: Measurement Method",title:"Acoustic Emission Signal Filtering for Ultrasonic Vibration-Assisted Grinding Wheel Monitoring Using a Hydrophone Sensor",authors:"YuKun Lin, Feng Chia University"},
+{id:"17FF3-1",date:"2026-04-17",time:"14:25",endTime:"16:05",room:"F",session:"17FF3: Power Electronics-3",title:"A Flip Chip Embedded PCB Power Module with Double Sided Cooling and Low Parasitic Inductance for Fine Pad Power Devices",authors:"Kao Che et al., Industrial Technology Research Institute"},
+{id:"17FF3-2",date:"2026-04-17",time:"14:25",endTime:"16:05",room:"F",session:"17FF3: Power Electronics-3",title:"Dynamic and Thermal Performance Evaluation of Three-Phase Full-Bridge Power Factor Correction Converters for On-Board Charger Applications",authors:"Wen You Jhu et al. (Feng Chia University, ITRI)"},
+{id:"17FF3-3",date:"2026-04-17",time:"14:25",endTime:"16:05",room:"F",session:"17FF3: Power Electronics-3",title:"Atmospheric Pressure Plasma Processes for Metal Oxide Reduction and Adhesion Improvement in Power Electronics",authors:"Hisanori Miyoshi et al. (Nihon Plasmatreat, Plasmatreat GmbH/USA)"},
+{id:"17FF3-4",date:"2026-04-17",time:"14:25",endTime:"16:05",room:"F",session:"17FF3: Power Electronics-3",title:"A power semiconductor chip rework technology without thermal and mechanical processes",authors:"Junha Baik et al. (KITECH, Seoul National University)"},
+{id:"17FB4-1",date:"2026-04-17",time:"16:20",endTime:"18:00",room:"B",session:"17FB4: Optoelectronics",title:"Reliability Evaluation of Copper Pin Package-on-Package Structures for Co-Packaged Optics",authors:"Motoyuki Fukuhara et al., Shinko Electric Industries"},
+{id:"17FB4-2",date:"2026-04-17",time:"16:20",endTime:"18:00",room:"B",session:"17FB4: Optoelectronics",title:"Thermal Analysis and Demonstration of Mirror-based Optical Redistribution Layer for Co-packaged Optics",authors:"Fumi Nakamura et al., AIST"},
+{id:"17FB4-3",date:"2026-04-17",time:"16:20",endTime:"18:00",room:"B",session:"17FB4: Optoelectronics",title:"High-Precision Passive Alignment for Multi-Channel Optical Connections in Silicon Photonic Microtransceivers",authors:"Michiyo Kubo et al., AIO Core Co., Ltd."},
+{id:"17FC4-1",date:"2026-04-17",time:"16:20",endTime:"18:00",room:"C",session:"17FC4: TSV",title:"Mixed-Foundry Heterogeneous Integration of Bumpless WOW and COW Processes for System-on-Wafer",authors:"Norio Chujo et al. (Institute of Science Tokyo, Tech Extension Co.)"},
+{id:"17FC4-2",date:"2026-04-17",time:"16:20",endTime:"18:00",room:"C",session:"17FC4: TSV",title:"Develop Three-Dimensional Infinite Element Method of Thermal Stress for Through-Silicon Via Analysis",authors:"De-Shin Liu et al. (National Chung Cheng University, National Chiayi University)"},
+{id:"17FD4-1",date:"2026-04-17",time:"16:20",endTime:"18:00",room:"D",session:"17FD4: Reliability-3",title:"Enhancement of Micro-DIC Technique and Deformation Measurement of Fine-Pitch Semiconductor Packages",authors:"Hyunwoo Nam et al. (KITECH, University of Suwon)"},
+{id:"17FD4-2",date:"2026-04-17",time:"16:20",endTime:"18:00",room:"D",session:"17FD4: Reliability-3",title:"Static Structural and Thermal Analysis of Heterogeneous 3D IC Integration Using Silicon and Glass Interposers",authors:"Divyankar Jha, Sai Reddy, National Taipei University of Technology"},
+{id:"17FD4-3",date:"2026-04-17",time:"16:20",endTime:"18:00",room:"D",session:"17FD4: Reliability-3",title:"Pre-heating influence on thermo-mechanical response of Ag-Au-Pd alloy fine wire during wire bonding process",authors:"Pei-Chen Huang, Zhi-Lin Xie, Wei-Lun Kao, National Chung Cheng University"},
+];
+
+// ============ APP STATE ============
+let currentDate = '2026-04-15';
+let activeRooms = new Set(['A','B','C','D','E','F','ALL']);
+// bookmarks: { id: "must" | "optional" }
+let bookmarks = JSON.parse(localStorage.getItem('icep2026_bookmarks_v2') || '{}');
+// Migrate from v1 if needed
+(function migrateV1() {
+  const v1 = localStorage.getItem('icep2026_bookmarks');
+  if (v1 && Object.keys(bookmarks).length === 0) {
+    try { const arr = JSON.parse(v1); if (Array.isArray(arr)) arr.forEach(id => bookmarks[id] = 'must'); saveBookmarks(); } catch(e){}
+  }
+})();
+
+let viewMode = 'program';
+let schedMode = 'list'; // 'list' | 'timetable'
+let progMode = 'list'; // 'list' | 'timetable'
+
+const DATE_LABELS = {
+  '2026-04-14': 'Tuesday, April 14',
+  '2026-04-15': 'Wednesday, April 15',
+  '2026-04-16': 'Thursday, April 16',
+  '2026-04-17': 'Friday, April 17'
+};
+const ROOMS_BY_DATE = {
+  '2026-04-14': ['A'],
+  '2026-04-15': ['A','B','C','D','E','F'],
+  '2026-04-16': ['A','B','C','D','E','F'],
+  '2026-04-17': ['A','B','C','D','E','F']
+};
+const ROOM_COLORS = {A:'#1e40af',B:'#166534',C:'#92400e',D:'#9d174d',E:'#3730a3',F:'#6b21a8',ALL:'#0c4a6e'};
+const ROOM_BGS = {A:'#dbeafe',B:'#dcfce7',C:'#fef3c7',D:'#fce7f3',E:'#e0e7ff',F:'#f3e8ff',ALL:'#e0f2fe'};
+
+function bookmarkCount() { return Object.keys(bookmarks).length; }
+
+function updateBadge() {
+  const badge = document.getElementById('scheduleBadge');
+  const c = bookmarkCount();
+  if (c > 0) { badge.style.display = 'inline-flex'; badge.textContent = c; }
+  else { badge.style.display = 'none'; }
+}
+
+function saveBookmarks() {
+  localStorage.setItem('icep2026_bookmarks_v2', JSON.stringify(bookmarks));
+  updateBadge();
+}
+
+function setBookmark(id, level) {
+  // level: 'must', 'optional', or null (remove)
+  if (level) bookmarks[id] = level;
+  else delete bookmarks[id];
+  saveBookmarks();
+  if (viewMode === 'schedule') renderSchedule();
+  else renderProgram();
+}
+
+function cycleBookmark(id) {
+  const cur = bookmarks[id];
+  if (!cur) setBookmark(id, 'must');
+  else if (cur === 'must') setBookmark(id, 'optional');
+  else setBookmark(id, null);
+}
+
+function selectDate(date) {
+  currentDate = date;
+  viewMode = 'program';
+  document.querySelectorAll('#dateTabs button').forEach(b => b.classList.toggle('active', b.dataset.date === date));
+  document.getElementById('programView').classList.remove('hidden');
+  document.getElementById('scheduleView').classList.remove('active');
+  document.getElementById('toolbar').style.display = 'flex';
+  document.getElementById('countInfo').style.display = 'block';
+  updateRoomFilters();
+  renderProgram();
+}
+
+function showSchedule() {
+  viewMode = 'schedule';
+  document.querySelectorAll('#dateTabs button').forEach(b => b.classList.toggle('active', b.dataset.date === 'schedule'));
+  document.getElementById('programView').classList.add('hidden');
+  document.getElementById('scheduleView').classList.add('active');
+  document.getElementById('toolbar').style.display = 'none';
+  document.getElementById('countInfo').style.display = 'none';
+  renderSchedule();
+}
+
+function setSchedMode(mode) {
+  schedMode = mode;
+  document.querySelectorAll('.sched-mode-toggle button').forEach(b => b.classList.toggle('active', b.textContent.toLowerCase().includes(mode === 'list' ? 'list' : 'timetable')));
+  renderSchedule();
+}
+
+function setProgMode(mode) {
+  progMode = mode;
+  document.querySelectorAll('#progModeToggle button').forEach(b => b.classList.toggle('active', b.textContent.toLowerCase().includes(mode === 'list' ? 'list' : 'timetable')));
+  renderProgram();
+}
+
+function updateRoomFilters() {
+  const rooms = ROOMS_BY_DATE[currentDate] || [];
+  const container = document.getElementById('roomFilters');
+  activeRooms = new Set([...rooms, 'ALL']);
+  container.innerHTML = rooms.map(r =>
+    `<button class="filter-btn active room-${r}" data-room="${r}" onclick="toggleRoom('${r}')">Room ${r}</button>`
+  ).join('');
+}
+
+function toggleRoom(room) {
+  const btn = document.querySelector(`.filter-btn[data-room="${room}"]`);
+  if (activeRooms.has(room)) { activeRooms.delete(room); btn.classList.remove('active'); }
+  else { activeRooms.add(room); btn.classList.add('active'); }
+  renderProgram();
+}
+
+function filterSessions() { renderProgram(); }
+
+function getFilteredSessions() {
+  const query = document.getElementById('searchInput').value.toLowerCase().trim();
+  return PROGRAM_DATA.filter(s => {
+    if (s.date !== currentDate) return false;
+    if (s.room !== 'ALL' && !activeRooms.has(s.room)) return false;
+    if (query) {
+      const text = `${s.title} ${s.authors} ${s.session} ${s.id}`.toLowerCase();
+      const words = query.split(/\s+/);
+      if (!words.every(w => text.includes(w))) return false;
+    }
+    return true;
+  });
+}
+
+function highlightText(text, query) {
+  if (!query) return text;
+  const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+  let result = text;
+  words.forEach(w => {
+    const regex = new RegExp(`(${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    result = result.replace(regex, '<span class="highlight">$1</span>');
+  });
+  return result;
+}
+
+function bkClass(id) {
+  const l = bookmarks[id];
+  if (l === 'must') return 'bk-must';
+  if (l === 'optional') return 'bk-optional';
+  return '';
+}
+
+function renderBkBtns(id) {
+  const l = bookmarks[id];
+  return `<div class="bk-btns">
+    <button class="bk-btn must-btn ${l==='must'?'active':''}" onclick="event.stopPropagation();setBookmark('${id}',${l==='must'?'null':"'must'"})" title="Must Attend">Must</button>
+    <button class="bk-btn opt-btn ${l==='optional'?'active':''}" onclick="event.stopPropagation();setBookmark('${id}',${l==='optional'?'null':"'optional'"})" title="If Possible">Option</button>
+  </div>`;
+}
+
+function renderProgram() {
+  if (progMode === 'timetable') { renderProgramTimetable(); return; }
+  renderProgramList();
+}
+
+function renderProgramList() {
+  const sessions = getFilteredSessions();
+  const query = document.getElementById('searchInput').value.toLowerCase().trim();
+  const container = document.getElementById('programView');
+  const countInfo = document.getElementById('countInfo');
+
+  const timeGroups = {};
+  const commonEvents = [];
+  sessions.forEach(s => {
+    if (s.common) { commonEvents.push(s); return; }
+    if (!timeGroups[s.time]) timeGroups[s.time] = [];
+    timeGroups[s.time].push(s);
+  });
+
+  const usedCommon = new Set();
+  const allTimes = [...new Set([...Object.keys(timeGroups), ...commonEvents.map(e => e.time)])].sort();
+  let totalCount = 0, html = '';
+
+  allTimes.forEach(t => {
+    commonEvents.filter(e => e.time === t && !usedCommon.has(e.id)).forEach(e => {
+      usedCommon.add(e.id);
+      totalCount++;
+      html += `<div class="common-event">
+        ${renderBkBtns(e.id)}
+        <div style="display:inline-block;background:var(--primary);color:#fff;padding:2px 10px;border-radius:12px;font-size:0.8rem;">${e.time} - ${e.endTime}</div>
+        <div class="event-title" style="margin-top:8px;">${highlightText(e.session, query)}</div>
+        <div class="event-detail">${highlightText(e.title, query)}</div>
+        <div class="event-detail" style="font-weight:600;">${highlightText(e.authors, query)}</div>
+        ${e.chairs ? `<div class="event-chairs">Chairs: ${e.chairs}</div>` : ''}
+      </div>`;
+    });
+
+    if (timeGroups[t]) {
+      const gs = timeGroups[t];
+      totalCount += gs.length;
+      const endTime = gs[0].endTime || '';
+      html += `<div class="time-group">
+        <div class="time-header"><span class="time-badge">${t}${endTime ? ' - '+endTime : ''}</span>
+        <span>${gs[0].session.split(':').slice(0,1).join('')} ${gs.length > 1 ? 'and more' : ''}</span></div>
+        <div class="sessions-grid">${gs.map(s => renderCard(s, query)).join('')}</div>
+      </div>`;
+    }
+  });
+
+  countInfo.textContent = `${totalCount} presentations found`;
+  container.innerHTML = html || '<div class="no-results">No results found. Try different search terms or filters.</div>';
+}
+
+function parseTime(t) { const [h,m] = t.split(':').map(Number); return h * 60 + m; }
+function fmtTime(mins) { const h = Math.floor(mins/60); const m = mins % 60; return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0'); }
+
+function renderProgramTimetable() {
+  const sessions = getFilteredSessions();
+  const query = document.getElementById('searchInput').value.toLowerCase().trim();
+  const container = document.getElementById('programView');
+  const countInfo = document.getElementById('countInfo');
+
+  const rooms = (ROOMS_BY_DATE[currentDate] || []).filter(r => activeRooms.has(r));
+  const commonEvents = sessions.filter(s => s.common);
+  const regularSessions = sessions.filter(s => !s.common);
+
+  // Group by time+room
+  const slotMap = {}; // key = time -> { room -> [sessions] }
+  regularSessions.forEach(s => {
+    if (!slotMap[s.time]) slotMap[s.time] = {};
+    if (!slotMap[s.time][s.room]) slotMap[s.time][s.room] = [];
+    slotMap[s.time][s.room].push(s);
+  });
+
+  const allTimes = [...new Set([...Object.keys(slotMap), ...commonEvents.map(e => e.time)])].sort();
+  const colCount = rooms.length || 1;
+  let totalCount = commonEvents.length + regularSessions.length;
+  countInfo.textContent = totalCount + ' presentations found';
+
+  let html = '<div class="timetable-wrapper"><table class="timetable">';
+  html += '<thead><tr><th class="time-col">Time</th>';
+  if (rooms.length > 0) rooms.forEach(r => html += '<th style="background:' + ROOM_COLORS[r] + '">Room ' + r + '</th>');
+  else html += '<th>Session</th>';
+  html += '</tr></thead><tbody>';
+
+  allTimes.forEach(t => {
+    // Common events at this time
+    const ce = commonEvents.filter(e => e.time === t);
+    ce.forEach(e => {
+      const bk = bookmarks[e.id];
+      const cls = bk ? ('bk-' + bk) : '';
+      html += '<tr><td style="font-weight:600;color:var(--primary);font-size:0.8rem;text-align:center;border:1px solid var(--border);">' + e.time + ' - ' + (e.endTime||'') + '</td>';
+      html += '<td colspan="' + colCount + '" class="tt-common"><div class="tt-cell-prog ' + cls + '" style="text-align:center;border:none;background:transparent;">';
+      html += '<div class="cell-title">' + highlightText(e.session, query) + '</div>';
+      html += '<div style="font-size:0.72rem;">' + highlightText(e.title, query) + '</div>';
+      html += '<div class="cell-author">' + highlightText(e.authors, query) + '</div>';
+      html += '<div class="cell-bk"><button class="m-btn ' + (bk==='must'?'active':'') + '" onclick="event.stopPropagation();setBookmark(\'' + e.id + '\',' + (bk==='must'?'null':"'must'") + ')">Must</button>';
+      html += '<button class="o-btn ' + (bk==='optional'?'active':'') + '" onclick="event.stopPropagation();setBookmark(\'' + e.id + '\',' + (bk==='optional'?'null':"'optional'") + ')">Option</button></div>';
+      html += '</div></td></tr>';
+    });
+
+    // Regular sessions at this time
+    if (!slotMap[t]) return;
+    const slot = slotMap[t];
+    // Determine max presentations in any single room for this time slot
+    const sample = Object.values(slot)[0];
+    if (!sample || sample.length === 0) return;
+    const slotStart = parseTime(sample[0].time);
+    const slotEnd = sample[0].endTime ? parseTime(sample[0].endTime) : slotStart + 30;
+    const slotDuration = slotEnd - slotStart;
+
+    // Find max count per room
+    let maxCount = 1;
+    rooms.forEach(r => { if (slot[r] && slot[r].length > maxCount) maxCount = slot[r].length; });
+    const subDur = Math.round(slotDuration / maxCount);
+
+    // Build sub-rows
+    for (let i = 0; i < maxCount; i++) {
+      const subStart = fmtTime(slotStart + i * subDur);
+      const subEnd = fmtTime(slotStart + (i + 1) * subDur);
+      html += '<tr>';
+      html += '<td style="font-weight:600;color:var(--primary);font-size:0.78rem;text-align:center;border:1px solid var(--border);white-space:nowrap;">' + subStart + '<br><span style="font-size:0.65rem;color:var(--text-light);">~ ' + subEnd + '</span></td>';
+
+      rooms.forEach(r => {
+        html += '<td style="border:1px solid var(--border);padding:3px;vertical-align:top;">';
+        const roomSessions = slot[r] || [];
+        if (i < roomSessions.length) {
+          const s = roomSessions[i];
+          const bk = bookmarks[s.id];
+          const cls = bk ? ('bk-' + bk) : '';
+          const invCls = s.invited ? ' invited-cell' : '';
+          html += '<div class="tt-cell-prog ' + cls + invCls + '">';
+          html += '<div class="cell-time">' + subStart + ' - ' + subEnd + '</div>';
+          html += '<div class="cell-title">' + highlightText(s.title, query) + '</div>';
+          html += '<div class="cell-author">' + highlightText(s.authors.split(',').slice(0,2).join(','), query) + '</div>';
+          html += '<div class="cell-bk">';
+          html += '<button class="m-btn ' + (bk==='must'?'active':'') + '" onclick="event.stopPropagation();setBookmark(\'' + s.id + '\',' + (bk==='must'?'null':"'must'") + ')">Must</button>';
+          html += '<button class="o-btn ' + (bk==='optional'?'active':'') + '" onclick="event.stopPropagation();setBookmark(\'' + s.id + '\',' + (bk==='optional'?'null':"'optional'") + ')">Option</button>';
+          html += '</div></div>';
+        } else {
+          html += '<div style="color:#ddd;text-align:center;padding:4px;">-</div>';
+        }
+        html += '</td>';
+      });
+      html += '</tr>';
+    }
+  });
+
+  html += '</tbody></table></div>';
+  container.innerHTML = html || '<div class="no-results">No results found.</div>';
+}
+
+function renderCard(s, query) {
+  return `<div class="session-card room-${s.room} ${bkClass(s.id)} ${s.invited?'invited':''}">
+    ${renderBkBtns(s.id)}
+    <span class="room-tag">Room ${s.room}</span>
+    ${s.invited ? '<span class="session-type">Invited</span>' : ''}
+    <div class="session-id">${highlightText(s.id, query)} | ${highlightText(s.session, query)}</div>
+    <div class="title">${highlightText(s.title, query)}</div>
+    <div class="authors">${highlightText(s.authors, query)}</div>
+  </div>`;
+}
+
+function renderSchedule() {
+  const container = document.getElementById('scheduleContent');
+  const countEl = document.getElementById('scheduleCount');
+  const bc = bookmarkCount();
+
+  if (bc === 0) {
+    countEl.textContent = '';
+    container.innerHTML = `<div class="schedule-empty"><div class="icon">☆</div><h3>No presentations bookmarked yet</h3><p style="margin-top:8px;">Browse the program and click <b>Must</b> or <b>Option</b> to add presentations.</p></div>`;
+    return;
+  }
+
+  const items = Object.keys(bookmarks).map(id => PROGRAM_DATA.find(s => s.id === id)).filter(Boolean);
+  items.sort((a,b) => a.date !== b.date ? a.date.localeCompare(b.date) : a.time.localeCompare(b.time));
+
+  const mustCount = items.filter(s => bookmarks[s.id]==='must').length;
+  const optCount = items.filter(s => bookmarks[s.id]==='optional').length;
+  countEl.textContent = `(Must: ${mustCount}, Option: ${optCount})`;
+
+  if (schedMode === 'timetable') renderTimetable(container, items);
+  else renderListSchedule(container, items);
+}
+
+function renderListSchedule(container, items) {
+  const byDate = {};
+  items.forEach(s => { if (!byDate[s.date]) byDate[s.date] = []; byDate[s.date].push(s); });
+
+  let html = '';
+  Object.keys(byDate).sort().forEach(date => {
+    html += `<div class="schedule-day"><h3>${DATE_LABELS[date]}</h3>`;
+    byDate[date].forEach(s => {
+      const lvl = bookmarks[s.id];
+      html += `<div class="schedule-item si-${lvl}">
+        <div class="time">${s.time}${s.endTime?' - '+s.endTime:''}<br><span style="font-size:0.75rem;color:var(--text-light);">Room ${s.room}</span></div>
+        <div class="info">
+          <div class="title">${s.title} <span class="pri-badge pri-${lvl}">${lvl==='must'?'Must':'Option'}</span></div>
+          <div class="meta">${s.id} | ${s.session}</div>
+          <div class="meta">${s.authors}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;">
+          <button class="bk-btn must-btn ${lvl==='must'?'active':''}" onclick="setBookmark('${s.id}',${lvl==='must'?"'optional'":"'must'"})" title="Toggle Must" style="opacity:${lvl==='must'?1:0.5}">${lvl==='must'?'Must':'Must'}</button>
+          <button class="remove-btn" onclick="setBookmark('${s.id}',null)" title="Remove" style="font-size:0.9rem;">✕</button>
+        </div>
+      </div>`;
+    });
+    html += `</div>`;
+  });
+  container.innerHTML = html;
+}
+
+function renderSchedTTBtns(id, lvl) {
+  return '<div class="cell-bk" style="margin-top:4px;display:flex;gap:3px;">'
+    + '<button class="m-btn ' + (lvl==='must'?'active':'') + '" style="border:none;border-radius:4px;cursor:pointer;font-size:0.6rem;font-weight:600;padding:2px 6px;opacity:' + (lvl==='must'?'1':'0.4') + ';background:#fee2e2;color:#dc2626;" onclick="event.stopPropagation();setBookmark(\'' + id + '\',' + (lvl==='must'?'null':"'must'") + ')">Must</button>'
+    + '<button class="o-btn ' + (lvl==='optional'?'active':'') + '" style="border:none;border-radius:4px;cursor:pointer;font-size:0.6rem;font-weight:600;padding:2px 6px;opacity:' + (lvl==='optional'?'1':'0.4') + ';background:#dbeafe;color:#2563eb;" onclick="event.stopPropagation();setBookmark(\'' + id + '\',' + (lvl==='optional'?'null':"'optional'") + ')">Option</button>'
+    + '<button style="border:none;border-radius:4px;cursor:pointer;font-size:0.6rem;font-weight:600;padding:2px 6px;opacity:0.4;background:#fee2e2;color:#ef4444;" onclick="event.stopPropagation();setBookmark(\'' + id + '\',null)">✕</button>'
+    + '</div>';
+}
+
+function renderTimetable(container, items) {
+  const byDate = {};
+  items.forEach(s => { if (!byDate[s.date]) byDate[s.date] = []; byDate[s.date].push(s); });
+
+  let html = '';
+  Object.keys(byDate).sort().forEach(date => {
+    const dateItems = byDate[date];
+    // Find all rooms used on this date
+    const roomSet = new Set();
+    dateItems.forEach(s => { if (s.room !== 'ALL') roomSet.add(s.room); });
+    const rooms = ['A','B','C','D','E','F'].filter(r => roomSet.has(r));
+    const hasCommon = dateItems.some(s => s.room === 'ALL');
+
+    // Find all unique time slots
+    const timeSlots = [...new Set(dateItems.map(s => s.time))].sort();
+
+    const colCount = rooms.length || 1;
+
+    html += `<div class="schedule-day"><h3>${DATE_LABELS[date]}</h3>`;
+    html += `<div class="timetable-wrapper"><table class="timetable">`;
+    html += `<thead><tr><th class="time-col">Time</th>`;
+    if (rooms.length > 0) rooms.forEach(r => html += `<th style="background:${ROOM_COLORS[r]}">Room ${r}</th>`);
+    else html += `<th>Session</th>`;
+    html += `</tr></thead><tbody>`;
+
+    timeSlots.forEach(t => {
+      const slotItems = dateItems.filter(s => s.time === t);
+      const commonItem = slotItems.find(s => s.room === 'ALL');
+      const roomItems = slotItems.filter(s => s.room !== 'ALL');
+
+      if (commonItem) {
+        const lvl = bookmarks[commonItem.id];
+        const endT = commonItem.endTime || '';
+        html += `<tr><td style="font-weight:600;color:var(--primary);font-size:0.8rem;text-align:center;">${t}${endT?' -<br>'+endT:''}</td>`;
+        html += `<td colspan="${colCount}" class="tt-common">`;
+        html += `<div class="tt-cell tt-${lvl}" style="text-align:center;">`;
+        html += `<div class="tt-id">${commonItem.id} <span class="pri-badge pri-${lvl}" style="font-size:0.65rem;">${lvl==='must'?'Must':'Opt'}</span></div>`;
+        html += `<div class="tt-title">${commonItem.session}</div>`;
+        html += `<div class="tt-meta">${commonItem.title}</div>`;
+        html += renderSchedTTBtns(commonItem.id, lvl);
+        html += `</div></td></tr>`;
+      }
+
+      if (roomItems.length > 0) {
+        const endT = roomItems[0].endTime || '';
+        html += `<tr><td style="font-weight:600;color:var(--primary);font-size:0.8rem;text-align:center;">${t}${endT?' -<br>'+endT:''}</td>`;
+        rooms.forEach(r => {
+          const cellItems = roomItems.filter(s => s.room === r);
+          html += `<td>`;
+          if (cellItems.length === 0) { html += `<div style="color:#ccc;text-align:center;padding:8px;">-</div>`; }
+          else {
+            cellItems.forEach(s => {
+              const lvl = bookmarks[s.id];
+              html += `<div class="tt-cell tt-${lvl}">`;
+              html += `<div class="tt-id">${s.id} <span class="pri-badge pri-${lvl}" style="font-size:0.62rem;">${lvl==='must'?'Must':'Opt'}</span></div>`;
+              html += `<div class="tt-title">${s.title}</div>`;
+              html += `<div class="tt-meta">${s.authors.split(',').slice(0,2).join(',')}</div>`;
+              html += renderSchedTTBtns(s.id, lvl);
+              html += `</div>`;
+            });
+          }
+          html += `</td>`;
+        });
+        html += `</tr>`;
+      }
+    });
+    html += `</tbody></table></div></div>`;
+  });
+  container.innerHTML = html || '<div class="no-results">No bookmarked presentations.</div>';
+}
+
+function resetSchedule() {
+  if (bookmarkCount() === 0) return;
+  if (confirm('Reset all bookmarks? This will clear your personal schedule.')) {
+    bookmarks = {};
+    saveBookmarks();
+    renderSchedule();
+  }
+}
+
+function exportSchedule() {
+  const items = Object.keys(bookmarks).map(id => PROGRAM_DATA.find(s => s.id === id)).filter(Boolean);
+  items.sort((a,b) => a.date !== b.date ? a.date.localeCompare(b.date) : a.time.localeCompare(b.time));
+  if (items.length === 0) { alert('No bookmarked presentations to export.'); return; }
+
+  const byDate = {};
+  items.forEach(s => { if (!byDate[s.date]) byDate[s.date] = []; byDate[s.date].push(s); });
+
+  // === Build List View ===
+  let rows = '';
+  Object.keys(byDate).sort().forEach(date => {
+    rows += `<tr><td colspan="5" style="background:#1e3a5f;color:#fff;padding:10px 14px;font-weight:700;font-size:1rem;">${DATE_LABELS[date]}</td></tr>`;
+    byDate[date].forEach(s => {
+      const lvl = bookmarks[s.id];
+      const rc = ROOM_COLORS[s.room]||'#333';
+      const rb = ROOM_BGS[s.room]||'#f0f0f0';
+      const priBg = lvl==='must' ? '#fee2e2' : '#dbeafe';
+      const priColor = lvl==='must' ? '#dc2626' : '#2563eb';
+      const priLabel = lvl==='must' ? 'Must' : 'Option';
+      rows += `<tr>
+        <td style="padding:8px 12px;vertical-align:top;white-space:nowrap;font-weight:600;color:#1a56db;border-bottom:1px solid #e2e8f0;">${s.time} - ${s.endTime||''}</td>
+        <td style="padding:8px 6px;vertical-align:top;border-bottom:1px solid #e2e8f0;"><span style="display:inline-block;padding:1px 8px;border-radius:4px;font-size:0.75rem;font-weight:600;background:${rb};color:${rc};">Room ${s.room}</span></td>
+        <td style="padding:8px 6px;vertical-align:top;border-bottom:1px solid #e2e8f0;"><span style="display:inline-block;padding:1px 7px;border-radius:4px;font-size:0.7rem;font-weight:700;background:${priBg};color:${priColor};">${priLabel}</span></td>
+        <td style="padding:8px 12px;vertical-align:top;border-bottom:1px solid #e2e8f0;">
+          <div style="font-weight:600;font-size:0.9rem;margin-bottom:2px;">${s.title}</div>
+          <div style="font-size:0.8rem;color:#64748b;">${s.id} | ${s.session}</div>
+        </td>
+        <td style="padding:8px 12px;vertical-align:top;border-bottom:1px solid #e2e8f0;font-size:0.82rem;color:#475569;">${s.authors}</td>
+      </tr>`;
+    });
+  });
+
+  // === Build Timetable View ===
+  let ttHtml = '';
+  Object.keys(byDate).sort().forEach(date => {
+    const dateItems = byDate[date];
+    const roomSet = new Set();
+    dateItems.forEach(s => { if (s.room !== 'ALL') roomSet.add(s.room); });
+    const rooms = ['A','B','C','D','E','F'].filter(r => roomSet.has(r));
+    const timeSlots = [...new Set(dateItems.map(s => s.time))].sort();
+    const colCount = rooms.length || 1;
+    const roomColorsInline = {A:'#1e40af',B:'#166534',C:'#92400e',D:'#9d174d',E:'#3730a3',F:'#6b21a8'};
+
+    ttHtml += '<div style="margin-bottom:24px;"><h3 style="font-size:1rem;font-weight:700;margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid #1a56db;">' + DATE_LABELS[date] + '</h3>';
+    ttHtml += '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:0.78rem;table-layout:fixed;min-width:800px;">';
+    ttHtml += '<thead><tr><th style="background:#1a56db;color:#fff;padding:8px 6px;width:90px;text-align:center;">Time</th>';
+    rooms.forEach(r => ttHtml += '<th style="background:' + (roomColorsInline[r]||'#333') + ';color:#fff;padding:8px 6px;text-align:center;">Room ' + r + '</th>');
+    if (rooms.length === 0) ttHtml += '<th style="background:#1a56db;color:#fff;padding:8px 6px;text-align:center;">Session</th>';
+    ttHtml += '</tr></thead><tbody>';
+
+    timeSlots.forEach(t => {
+      const slotItems = dateItems.filter(s => s.time === t);
+      const commonItem = slotItems.find(s => s.room === 'ALL');
+      const roomItems = slotItems.filter(s => s.room !== 'ALL');
+      const endT = (slotItems[0] && slotItems[0].endTime) || '';
+
+      if (commonItem) {
+        const lvl = bookmarks[commonItem.id];
+        const borderCol = lvl==='must' ? '#dc2626' : '#2563eb';
+        const bgCol = lvl==='must' ? '#fef2f2' : '#eff6ff';
+        const priLabel = lvl==='must' ? 'Must' : 'Opt';
+        const priBg = lvl==='must' ? '#fee2e2' : '#dbeafe';
+        const priColor = lvl==='must' ? '#dc2626' : '#2563eb';
+        ttHtml += '<tr><td style="font-weight:600;color:#1a56db;font-size:0.8rem;text-align:center;padding:6px;border:1px solid #e2e8f0;">' + t + (endT?' - '+endT:'') + '</td>';
+        ttHtml += '<td colspan="' + colCount + '" style="border:1px solid #e2e8f0;padding:4px;"><div style="padding:6px;border-radius:6px;border-left:3px solid ' + borderCol + ';background:' + bgCol + ';text-align:center;">';
+        ttHtml += '<div style="font-weight:600;color:#1a56db;font-size:0.68rem;">' + commonItem.id + ' <span style="display:inline-block;padding:1px 5px;border-radius:3px;font-size:0.62rem;font-weight:700;background:' + priBg + ';color:' + priColor + ';">' + priLabel + '</span></div>';
+        ttHtml += '<div style="font-weight:600;">' + commonItem.session + '</div>';
+        ttHtml += '<div style="color:#64748b;font-size:0.72rem;margin-top:2px;">' + commonItem.title + '</div>';
+        ttHtml += '</div></td></tr>';
+      }
+
+      if (roomItems.length > 0) {
+        ttHtml += '<tr><td style="font-weight:600;color:#1a56db;font-size:0.8rem;text-align:center;padding:6px;border:1px solid #e2e8f0;">' + t + (endT?' - '+endT:'') + '</td>';
+        rooms.forEach(r => {
+          const cellItems = roomItems.filter(s => s.room === r);
+          ttHtml += '<td style="border:1px solid #e2e8f0;padding:4px;vertical-align:top;">';
+          if (cellItems.length === 0) { ttHtml += '<div style="color:#ccc;text-align:center;padding:8px;">-</div>'; }
+          else {
+            cellItems.forEach(s => {
+              const lvl = bookmarks[s.id];
+              const borderCol = lvl==='must' ? '#dc2626' : '#2563eb';
+              const bgCol = lvl==='must' ? '#fef2f2' : '#eff6ff';
+              const priLabel = lvl==='must' ? 'Must' : 'Opt';
+              const priBg = lvl==='must' ? '#fee2e2' : '#dbeafe';
+              const priColor = lvl==='must' ? '#dc2626' : '#2563eb';
+              ttHtml += '<div style="padding:6px;border-radius:6px;border-left:3px solid ' + borderCol + ';background:' + bgCol + ';margin-bottom:4px;line-height:1.35;">';
+              ttHtml += '<div style="font-weight:600;color:#1a56db;font-size:0.68rem;">' + s.id + ' <span style="display:inline-block;padding:1px 5px;border-radius:3px;font-size:0.62rem;font-weight:700;background:' + priBg + ';color:' + priColor + ';">' + priLabel + '</span></div>';
+              ttHtml += '<div style="font-weight:600;font-size:0.75rem;">' + s.title + '</div>';
+              ttHtml += '<div style="color:#64748b;font-size:0.7rem;margin-top:2px;">' + s.authors.split(',').slice(0,2).join(',') + '</div>';
+              ttHtml += '</div>';
+            });
+          }
+          ttHtml += '</td>';
+        });
+        ttHtml += '</tr>';
+      }
+    });
+    ttHtml += '</tbody></table></div></div>';
+  });
+
+  const mustCount = items.filter(s => bookmarks[s.id]==='must').length;
+  const optCount = items.filter(s => bookmarks[s.id]==='optional').length;
+
+  const expHtml = `<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>ICEP-HBS 2026 - My Schedule</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;color:#1e293b;line-height:1.5;padding:20px;}
+.container{max-width:1200px;margin:0 auto;background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.08);overflow:hidden;}
+.header{background:linear-gradient(135deg,#1e3a5f,#1a56db);color:#fff;padding:24px 28px;}
+.header h1{font-size:1.4rem;font-weight:700;}.header p{font-size:0.85rem;opacity:0.85;margin-top:4px;}
+.meta{padding:14px 28px;background:#f0f9ff;border-bottom:1px solid #e2e8f0;font-size:0.85rem;color:#475569;display:flex;gap:16px;flex-wrap:wrap;align-items:center;}
+.legend-item{display:flex;align-items:center;gap:4px;font-size:0.8rem;}
+.legend-box{width:12px;height:12px;border-radius:3px;}
+table.list-tbl{width:100%;border-collapse:collapse;}
+.toggle-bar{padding:12px 28px;display:flex;gap:8px;align-items:center;border-bottom:1px solid #e2e8f0;}
+.toggle-bar button{padding:6px 16px;border:1px solid #e2e8f0;border-radius:6px;cursor:pointer;font-size:0.82rem;font-weight:500;background:#fff;color:#64748b;transition:all 0.2s;}
+.toggle-bar button.active{background:#1a56db;color:#fff;border-color:#1a56db;}
+#listView{display:block;}#ttView{display:none;}
+@media print{body{padding:0;background:#fff;}.container{box-shadow:none;border-radius:0;}.no-print{display:none!important;}}
+@media(max-width:768px){table.list-tbl,table.list-tbl tbody,table.list-tbl tr,table.list-tbl td{display:block;}table.list-tbl tr{margin-bottom:12px;border-bottom:2px solid #e2e8f0;}table.list-tbl td{padding:4px 12px!important;border:none!important;}}
+</style></head><body>
+<div class="container">
+<div class="header"><h1>ICEP-HBS 2026 - My Schedule</h1><p>International Conference on Electronics Packaging | April 14-17, 2026 | Hiroshima</p></div>
+<div class="meta">
+<span>Must: ${mustCount} | Option: ${optCount} | Total: ${items.length}</span>
+<span class="legend-item"><span class="legend-box" style="background:#dc2626;"></span> Must Attend</span>
+<span class="legend-item"><span class="legend-box" style="background:#2563eb;"></span> If Possible</span>
+<span style="margin-left:auto;">Generated: ${new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})}</span>
+</div>
+<div class="toggle-bar no-print">
+<span style="font-size:0.85rem;font-weight:600;margin-right:4px;">View:</span>
+<button class="active" onclick="showView('list')">List</button>
+<button onclick="showView('tt')">Timetable</button>
+</div>
+<div id="listView"><table class="list-tbl">${rows}</table></div>
+<div id="ttView">${ttHtml}</div>
+</div>
+<div class="no-print" style="text-align:center;margin-top:16px;">
+<button onclick="window.print()" style="padding:10px 24px;background:#1a56db;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:0.9rem;">Print / Save as PDF</button>
+</div>
+<scr` + `ipt>
+function showView(v){
+document.getElementById('listView').style.display=v==='list'?'block':'none';
+document.getElementById('ttView').style.display=v==='tt'?'block':'none';
+document.querySelectorAll('.toggle-bar button').forEach((b,i)=>{b.classList.toggle('active',i===(v==='list'?0:1));});
+}
+</scr` + `ipt>
+</body></html>`;
+
+  const blob = new Blob([expHtml], { type: 'text/html' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'ICEP2026_MySchedule.html';
+  a.click();
+}
+
+// ============ INIT ============
+updateBadge();
+updateRoomFilters();
+renderProgram();
+</script>
+</body>
+</html>
